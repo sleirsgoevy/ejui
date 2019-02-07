@@ -44,7 +44,7 @@ def do_login():
         message = "Internal server error"
     if message != None:
         with open('ejui/error.html') as file:
-            return file.read().format(message)
+            return file.read().format(message=html.escape(message))
     session_id = os.urandom(16).hex()
     sessions[session_id] = (url, cookie)
     response.set_cookie('credentials', session_id)

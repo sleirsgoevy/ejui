@@ -291,14 +291,18 @@ function doAjaxLoad(page)
                 h2.appendChild(document.createTextNode('Submissions'));
                 body.appendChild(h2);
                 var subm_t = document.createElement('table');
-                subm_t.cellspacing = 0;
-                subm_t.border = 1;
+                subm_t.setAttribute('cellspacing', '0');
+                subm_t.setAttribute('border', '1');
                 subm_t.innerHTML = '<tr><th>ID</th><th>Task</th><th>Status</th><th>Protocol</th></tr>';
                 subm_table = new SubmissionTable(subms, subm_t);
                 body.appendChild(subm_t);
             }
+            var h2 = document.createElement('h2');
+            h2.appendChild(document.createTextNode('Submit a solution'));
+            body.appendChild(h2);
             var form = document.createElement('form');
-            form.action = '/submit/'+currentTask;
+            form.action = '/submit/'+document.location.pathname.substr(6);
+            form.method = 'POST';
             form.enctype = 'multipart/form-data';
             var formtab = document.createElement('table');
             var formTR = function(a, b)
@@ -355,8 +359,8 @@ function doAjaxLoad(page)
             h2.appendChild(document.createTextNode('Submissions'));
             body.appendChild(h2);
             var subm_t = document.createElement('table');
-            subm_t.cellspacing = 0;
-            subm_t.border = 1;
+            subm_t.setAttribute('cellspacing', '0');
+            subm_t.setAttribute('border', '1');
             subm_t.innerHTML = '<tr><th>ID</th><th>Task</th><th>Status</th><th>Protocol</th></tr>';
             subm_table = new SubmissionTable(subms, subm_t);
             body.appendChild(subm_t);
