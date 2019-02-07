@@ -149,6 +149,17 @@ def submission_list():
     url, cookie = force_session()
     return {"list": bj.submission_list(url, cookie)}
 
+@route('/api/submission_list/<id:int>')
+def submission_list_item(id):
+    id = int(id)
+    url, cookie = force_session()
+    stats = bj.submission_stats(url, cookie, id)
+    status = bj.submission_status(url, cookie, id)
+    data = {'status': status}
+    if 'score' in stats:
+        data['score'] = stats['score']
+    return data
+
 @route('/api/stats/<id>')
 def submission_stats(id):
     id = int(id)
@@ -158,25 +169,29 @@ def submission_stats(id):
 def format_page(page, text, tl=None):
     url, cookie = force_session()
     if tl == None: tl = bj.task_list(url, cookie)
-    data = [('main', '/', 'show_main()', '<b>ejui</b>')]
+    data = [('main', '/', '<b>ejui</b>')]
     for i, j in enumerate(tl):
-        data.append(('task%d'%i, '/task/%d'%i, 'show_task(%d)'%i, html.escape(j)))
-    data2 = [('subms', '/submissions', 'show_subms()', 'Submissions')]
+        data.append(('task%d'%i, '/task/%d'%i, html.escape(j)))
+    data2 = [('subms', '/submissions', 'Submissions')]
     head = ''
-    for a, b, c, d in data:
-        head += '<a id="'+a+'" href="'+b+'" onclick="'+c+'; return false"'
+    for a, b, c in data:
+        head += '<a id="'+a+'" href="'+b+'" onclick="ajax_load(this); return false"'
         if a == page:
             head += ' class=selected'
-        head += '>'+d+'</a>'
+        head += '>'+c+'</a>'
     head += '<span class=to_right>'
-    for a, b, c, d in data2:
-        head += '<a id="'+a+'" href="'+b+'" onclick="'+c+'; return false"'
+    for a, b, c in data2:
+        head += '<a id="'+a+'" href="'+b+'" onclick="ajax_load(this); return false"'
         if a == page:
             head += ' class=selected'
-        head += '>'+d+'</a>'
+        head += '>'+c+'</a>'
     head += '</span>'
+    if page.startswith('task'):
+        curr_task = repr(tl[int(page[4:])])
+    else:
+        curr_task = 'null'
     with open('ejui/skel.html') as file:
-        return file.read().format(head=head, body=text)
+        return file.read().format(task=curr_task, head=head, body=text)
 
 def format_submissions(task=None):
     url, cookie = force_session()
