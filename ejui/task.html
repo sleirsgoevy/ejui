@@ -1,0 +1,16 @@
+<h1>Task {name}</h1>
+{subms}
+<h2>Submit a solution</h2>
+<form action="/submit/{id}" method="post" enctype="multipart/form-data">
+<table>
+{compilers}
+<tr>
+<td><label for="file">Solution:</label></td>
+<td><input type="file" id="file" name="file" /></td>
+</tr>
+<tr>
+<td></td>
+<td><input type="submit" value="Submit a solution" /></td>
+</tr>
+</table>
+</form>
