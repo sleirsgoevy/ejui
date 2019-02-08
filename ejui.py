@@ -26,9 +26,17 @@ def main_page():
     with open('ejui/main.html') as file:
         return format_page('main', file.read())
 
+@route('/style.css')
+def style_css():
+    return static_file('style.css', 'ejui')
+
 @route('/app.js')
 def app_js():
     return static_file('app.js', 'ejui')
+
+@route('/logout.png')
+def logout_png():
+    return static_file('logout.png', 'ejui')
 
 @post('/')
 def do_login():
@@ -65,9 +73,11 @@ def task_data(task, tl=None):
         abort(404)
     name = tl[task]
     tids = bj.task_ids(url, cookie)
-    tid = tids[task]
-    try: compilers = bj.compiler_list(url, cookie, tid)
-    except BruteError: compilers = []
+    try: tid = tids[task]
+    except IndexError: compilers = []
+    else:
+        try: compilers = bj.compiler_list(url, cookie, tid)
+        except BruteError: compilers = []
     return {'name': name, 'compilers': compilers}
 
 @route('/task/<task:int>')
@@ -101,6 +111,7 @@ def submit(task, cmpl=None):
     js = False
     if cmpl != None:
         js = True
+        cmpl = int(cmpl)
         data = request.body.read()
     else:
         cmpl = int(request.forms.get('cmpl', '0'))
@@ -166,20 +177,27 @@ def submission_stats(id):
     url, cookie = force_session()
     return bj.submission_stats(url, cookie, id)[0]
 
+@route('/logout')
+def logout():
+    sess_id = request.get_cookie('credentials', 'invalid')
+    try: del sessions[sess_id]
+    except KeyError: pass
+    return redirect('/')
+
 def format_page(page, text, tl=None):
     url, cookie = force_session()
     if tl == None: tl = bj.task_list(url, cookie)
     data = [('main', '/', '<b>ejui</b>')]
     for i, j in enumerate(tl):
         data.append(('task%d'%i, '/task/%d'%i, html.escape(j)))
-    data2 = [('subms', '/submissions', 'Submissions')]
-    head = ''
+    data2 = [('error', '', '<div id="error_btn">!</div>'), ('subms', '/submissions', 'Submissions'), ('logout', '/logout', '<img src="/logout.png" alt="Log out" />')]
+    head = '<span class="to_left">'
     for a, b, c in data:
         head += '<a id="'+a+'" href="'+b+'" onclick="ajax_load(this); return false"'
         if a == page:
             head += ' class=selected'
         head += '>'+c+'</a>'
-    head += '<span class=to_right>'
+    head += '</span><span class="to_right">'
     for a, b, c in data2:
         head += '<a id="'+a+'" href="'+b+'" onclick="ajax_load(this); return false"'
         if a == page:
@@ -226,4 +244,8 @@ def format_tests(id):
     with open('ejui/tests.html') as file:
         return (file.read().format(data=data), a)
 
-run(host=host, port=port)
+import wsgiref.simple_server, socketserver
+
+class Server(socketserver.ThreadingMixIn, wsgiref.simple_server.WSGIServer): pass
+
+run(host=host, port=port, server_class=Server)

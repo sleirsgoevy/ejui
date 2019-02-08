@@ -23,6 +23,12 @@ Submission.prototype.set_render = function(tb, tr)
     this.render();
 }
 
+Submission.prototype.maybePoll = function()
+{
+    if(this.data.status.substr(this.data.status.length - 3) === '...')
+        this.poll();
+}
+
 Submission.prototype.render = function()
 {
     if(this.render_tr === null || this.render_table === null)
@@ -51,7 +57,19 @@ Submission.prototype.render = function()
     a.appendChild(document.createTextNode('Show protocol'));
     td.appendChild(a);
     this.render_tr.appendChild(td);
-    this.poll();
+    if(this.data.status.substr(this.data.status.length - 3) === '...')
+        this.poll();
+}
+
+Submission.prototype.renderStatusOnly = function()
+{
+    if(this.render_tr && this.render_tr.childNodes.length >= 4)
+    {
+        this.render_tr.childNodes[2].firstChild.data = this.data.status;
+        this.maybePoll();
+    }
+    else
+        this.render();
 }
 
 Submission.prototype.poll = function()
@@ -66,13 +84,21 @@ Submission.prototype.poll = function()
     xhr.onload = function() 
     {
         this.polling = false;
-        var data = JSON.parse(this.responseText);
-        if(data.status !== self.data.status || data.score !== self.data.score)
+        var data = JSON.parse(xhr.responseText);
+        if(data.status.substr(data.status.length - 3) === '...' || data.status !== self.data.status || data.score !== self.data.score)
         {
-            self.data = data;
-            self.render();
+            if(self.data.score === data.score)
+            {
+                self.data = data;
+                self.renderStatusOnly();
+            }
+            else
+            {
+                self.data = data;
+                self.render();
+            }
         }
-    }
+    }.bind(this);
 }
 
 function SubmissionTable(subms, table)
@@ -144,10 +170,10 @@ SubmissionTable.prototype.animatedInsert = function(elem, property)
 {
     if(!this.animated)
         return;
-    elem.className = 'zero_'+property;
+    elem.className = 'animated zero_'+property;
     setTimeout(function()
     {
-        elem.className = '';
+        elem.className = 'animated';
     }, 1);
 }
 
@@ -158,15 +184,16 @@ SubmissionTable.prototype.animatedRemove = function(elem, property)
         elem.parentNode.removeChild(elem);
         return;
     }
+    elem.className = 'animated';
     setTimeout(function()
     {
-        elem.className = 'zero_'+property;
+        elem.className = 'animated zero_'+property;
     }, 1);
     setTimeout(function()
     {
-        if(elem.className == 'zero_'+property)
+        if(elem.className == 'animated zero_'+property)
             elem.parentNode.removeChild(elem);
-    }, 1000);
+    }, 5000);
 }
 
 SubmissionTable.prototype.addScores = function()
@@ -243,11 +270,53 @@ function checkSubmissions()
         if(submsLoaded && currentTask !== null && !have_new_subms)
             alert("Submission failed!");
         if(!submsLoaded && (document.location.pathname.substr(0, 6) == '/task/' || document.location.pathname == '/submissions'))
-            subm_table = new SubmissionTable(subms, document.getElementById('submissions'));
+        {
+            var a = document.getElementById('subm_cont');
+            var b = document.getElementById('submissions');
+            if(b === null)
+            {
+                if(a === null)
+                    return;
+                a.innerHTML = '<h1>Submissions</h1><table id=submissions cellspacing=0 border=1><tr><td>ID</td><td>Task</td><td>Status</td><td>Protocol</td></tr></table>';
+                b = document.getElementById('submissions');
+            }
+            subm_table = new SubmissionTable(subms, b);
+            a.style.display = (subms.length?'inline':'none');
+        }
         submsLoaded = true;
         if(subm_table !== null)
             subm_table.refresh();
     }
+}
+
+function submitSolution()
+{
+    var cmpl = document.getElementById('cmpl');
+    if(cmpl === null)
+        cmpl = '0';
+    else
+    {
+        cmpl = Number(cmpl.value);
+        if(cmpl * 0)
+            cmpl = '0';
+    }
+    var file = document.getElementById('file');
+    if(file.files.length == 0)
+    {
+        alert("No file selected!");
+        return;
+    }
+    file = file.files[0];
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', '/submit/'+document.location.pathname.substr(6)+'/'+cmpl, true);
+    xhr.onload = checkSubmissions.bind(window);
+    var fr = new FileReader();
+    fr.onload = function()
+    {
+        xhr.send(this.result);
+        file.files.length = 0;
+    }
+    fr.readAsArrayBuffer(file);
 }
 
 var origPage = document.location.pathname;
@@ -301,9 +370,15 @@ function doAjaxLoad(page)
             h2.appendChild(document.createTextNode('Submit a solution'));
             body.appendChild(h2);
             var form = document.createElement('form');
+            form.id = 'submit_form';
             form.action = '/submit/'+document.location.pathname.substr(6);
             form.method = 'POST';
             form.enctype = 'multipart/form-data';
+            form.onsubmit = function()
+            {
+                submitSolution();
+                return false;
+            }
             var formtab = document.createElement('table');
             var formTR = function(a, b)
             {
@@ -321,6 +396,7 @@ function doAjaxLoad(page)
             if(data.compilers.length)
             {
                 var compiler_select = document.createElement('select');
+                compiler_select.id = 'cmpl';
                 compiler_select.name = 'cmpl';
                 var first_opt = document.createElement('option');
                 first_opt.style.display = 'none';
@@ -338,6 +414,7 @@ function doAjaxLoad(page)
                 formTR(document.createTextNode('Language:'), compiler_select);
             }
             var ifile = document.createElement('input');
+            ifile.id = 'file';
             ifile.type = 'file';
             ifile.name = 'file';
             formTR(document.createTextNode('Solution:'), ifile);
@@ -386,6 +463,8 @@ function doAjaxLoad(page)
 function ajax_load(link)
 {
     var path = link.getAttribute('href');
+    if(path == '')
+        return;
     history.pushState({"page": path}, "", path);
     doAjaxLoad(path);
 }
