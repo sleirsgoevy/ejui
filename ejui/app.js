@@ -83,6 +83,7 @@ Submission.prototype.poll = function()
     xhr.send('');
     xhr.onload = function() 
     {
+        var score0 = self.data.score;
         this.polling = false;
         var data = JSON.parse(xhr.responseText);
         if(data.status.substr(data.status.length - 3) === '...' || data.status !== self.data.status || data.score !== self.data.score)
@@ -98,6 +99,8 @@ Submission.prototype.poll = function()
                 self.render();
             }
         }
+        if((score0 === undefined) != (self.data.score === undefined) && this.render_table !== null)
+            this.render_table.refresh();
     }.bind(this);
 }
 
@@ -108,8 +111,7 @@ function SubmissionTable(subms, table)
     this.table = table;
     if(this.table.lastChild && (''+this.table.lastChild.tagName).toLowerCase() == 'tbody')
        this.table = this.table.lastChild;
-    while(this.table.childNodes.length > 1)
-        this.table.removeChild(this.table.lastChild);
+    this.table.innerHTML = '<tr><th>ID</th><th>Task</th><th>Status</th><th>Protocol</th></tr>';
     this.table_contents = [];
     this.animated = false;
     this.refresh();
@@ -139,7 +141,7 @@ SubmissionTable.prototype.refresh = function()
     var have_scores = false;
     for(var i = subms.length - 1; i >= 0; i--)
     {
-        if(subms[i].score !== undefined)
+        if(subms[i].data.score !== undefined)
             have_scores = true;
         if(subms[i].render_tr === null)
         {
@@ -199,8 +201,8 @@ SubmissionTable.prototype.animatedRemove = function(elem, property)
 SubmissionTable.prototype.addScores = function()
 {
     var scores = document.createElement('th');
-    scores.appendChild(document.createTextNode('Scores'));
-    this.table.childNodes[0].insertBefore(scores, this.table.childNodes[0].childNodes[2]);
+    scores.appendChild(document.createTextNode('Score'));
+    this.table.childNodes[0].insertBefore(scores, this.table.childNodes[0].childNodes[3]);
     this.animatedInsert(scores, 'width');
     for(var i = 1; i < this.table.childNodes.length; i++)
     {
@@ -247,6 +249,7 @@ function checkSubmissions()
     xhr.send('');
     xhr.onload = function()
     {
+        var prev_len = subms.length;
         var data = JSON.parse(this.responseText);
         var subm_by_id = {};
         for(var i = 0; i < subms.length; i++)
@@ -269,7 +272,7 @@ function checkSubmissions()
         }
         if(submsLoaded && currentTask !== null && !have_new_subms)
             alert("Submission failed!");
-        if(!submsLoaded && (document.location.pathname.substr(0, 6) == '/task/' || document.location.pathname == '/submissions'))
+        if(subms.length && !prev_len && (document.location.pathname.substr(0, 6) == '/task/' || document.location.pathname == '/submissions'))
         {
             var a = document.getElementById('subm_cont');
             var b = document.getElementById('submissions');
@@ -277,7 +280,8 @@ function checkSubmissions()
             {
                 if(a === null)
                     return;
-                a.innerHTML = '<h1>Submissions</h1><table id=submissions cellspacing=0 border=1><tr><td>ID</td><td>Task</td><td>Status</td><td>Protocol</td></tr></table>';
+                var h = (document.location.pathname.substr(0, 6) == '/task/')?'2':'1';
+                a.innerHTML = '<h'+h+'>Submissions</h'+h+'><table id=submissions cellspacing=0 border=1><tr><td>ID</td><td>Task</td><td>Status</td><td>Protocol</td></tr></table>';
                 b = document.getElementById('submissions');
             }
             subm_table = new SubmissionTable(subms, b);
@@ -349,23 +353,27 @@ function doAjaxLoad(page)
         xhr.onload = function()
         {
             var body = document.getElementById('body');
+            body.innerHTML = '';
             var data = JSON.parse(xhr.responseText);
             currentTask = data.name;
             var h1 = document.createElement('h1');
             h1.appendChild(document.createTextNode('Task '+data.name));
             body.appendChild(h1);
+            var span = document.createElement('span');
+            span.id = 'subm_cont';
             if(anySubmissions())
             {
                 var h2 = document.createElement('h2');
                 h2.appendChild(document.createTextNode('Submissions'));
-                body.appendChild(h2);
+                span.appendChild(h2);
                 var subm_t = document.createElement('table');
                 subm_t.setAttribute('cellspacing', '0');
                 subm_t.setAttribute('border', '1');
                 subm_t.innerHTML = '<tr><th>ID</th><th>Task</th><th>Status</th><th>Protocol</th></tr>';
                 subm_table = new SubmissionTable(subms, subm_t);
-                body.appendChild(subm_t);
+                span.appendChild(subm_t);
             }
+            body.append(span);
             var h2 = document.createElement('h2');
             h2.appendChild(document.createTextNode('Submit a solution'));
             body.appendChild(h2);
@@ -430,20 +438,23 @@ function doAjaxLoad(page)
     {
         select_item('subms');
         var body = document.getElementById('body');
-        if(anySubmissions)
+        var span = document.createElement('span');
+        span.id = 'subm_cont';
+        if(anySubmissions())
         {
-            var h2 = document.createElement('h2');
-            h2.appendChild(document.createTextNode('Submissions'));
-            body.appendChild(h2);
+            var h1 = document.createElement('h1');
+            h1.appendChild(document.createTextNode('Submissions'));
+            span.appendChild(h1);
             var subm_t = document.createElement('table');
             subm_t.setAttribute('cellspacing', '0');
             subm_t.setAttribute('border', '1');
             subm_t.innerHTML = '<tr><th>ID</th><th>Task</th><th>Status</th><th>Protocol</th></tr>';
             subm_table = new SubmissionTable(subms, subm_t);
-            body.appendChild(subm_t);
+            span.appendChild(subm_t);
         }
         else
-            body.innerHTML = '<p>You have no submissions</p>';
+            span.innerHTML = '<p>You have no submissions</p>';
+        body.appendChild(span);
     }
     else if(page.substr(0, 13) == '/submissions/')
     {

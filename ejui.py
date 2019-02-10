@@ -164,11 +164,11 @@ def submission_list():
 def submission_list_item(id):
     id = int(id)
     url, cookie = force_session()
-    stats = bj.submission_stats(url, cookie, id)
+    score = bj.submission_score(url, cookie, id)
     status = bj.submission_status(url, cookie, id)
     data = {'status': status}
-    if 'score' in stats:
-        data['score'] = stats['score']
+    if score != None:
+        data['score'] = score
     return data
 
 @route('/api/stats/<id>')
@@ -219,9 +219,10 @@ def format_submissions(task=None):
     stats_arr = []
     for i, t in zip(a, b):
         if task in (t, None):
-            stats = submission_stats(i)
+            stats = bj.submission_score(url, cookie, i)
+            if stats != None: have_score = True
+            else: stats = ''
             stats_arr.append(stats)
-            if 'score' in stats: have_score = True
     with open('ejui/subm.html' if have_score else 'ejui/subm_no_score.html') as file:
         tt = file.read()
     stats_arr = iter(stats_arr)
@@ -229,7 +230,7 @@ def format_submissions(task=None):
         if task in (t, None):
             status = bj.submission_status(url, cookie, i)
             stats = next(stats_arr)
-            ans += tt.format(id=i, task=html.escape(t), status=html.escape(status), score=stats.get('score', ''))
+            ans += tt.format(id=i, task=html.escape(t), status=html.escape(status), score=stats)
     with open('ejui/subms_t.html' if have_score else 'ejui/subms_no_score.html') as file:
         return (file.read().format(data=ans), b)
 
