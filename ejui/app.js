@@ -44,7 +44,7 @@ Submission.prototype.render = function()
     pushTD(this.id);
     pushTD(this.task);
     pushTD(this.data.status);
-    if(this.render_table.has_scores || this.data.score !== undefined)
+    if(this.render_table.has_scores)
         pushTD((this.data.score === undefined)?'':this.data.score);
     var td = document.createElement('td');
     var a = document.createElement('a');
@@ -207,9 +207,14 @@ SubmissionTable.prototype.addScores = function()
     for(var i = 1; i < this.table.childNodes.length; i++)
     {
         var tr = this.table.childNodes[i];
+	var subm = this.table_contents[i - 1];
         if(tr.childNodes.length == 4)
-            tr.insertBefore(document.createElement('td'), tr.childNodes[2]);
-        this.animatedInsert(tr.childNodes[2], 'width');
+	{
+	    var scoreTD = document.createElement('td');
+	    scoreTD.appendChild(document.createTextNode((subm.data.score !== undefined)?subm.data.score:''));
+            tr.insertBefore(scoreTD, tr.childNodes[3]);
+            this.animatedInsert(scoreTD, 'width');
+	}
     }
 }
 

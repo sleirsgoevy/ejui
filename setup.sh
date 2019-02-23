@@ -1,7 +1,9 @@
 SERVER="$1"
 
 wget "http://$1:8000/ejui.tar.gz" -O - | tar -xvzf -
+cd ejui
 bash download_brutejudge.sh
+cd ..
 
 sudo pip3 install bottle
 
