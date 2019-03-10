@@ -78,6 +78,16 @@ Submission.prototype.poll = function()
         return;
     this.polling = true;
     var self = this;
+    if(submPreload !== null && submPreload[this.id] !== undefined)
+    {
+        setTimeout(function()
+        {
+            self.data = submPreload[self.id];
+            delete submPreload[self.id];
+            self.render();
+        }, 0);
+        return;
+    }
     var xhr = new XMLHttpRequest();
     xhr.open('GET', '/api/submission_list/'+this.id, true);
     xhr.send('');
@@ -85,7 +95,15 @@ Submission.prototype.poll = function()
     {
         var score0 = self.data.score;
         this.polling = false;
-        var data = JSON.parse(xhr.responseText);
+        try
+        {
+            var data = JSON.parse(xhr.responseText);
+        }
+        catch(e)
+        {
+            self.poll();
+            return;
+        }
         if(data.status.substr(data.status.length - 3) === '...' || data.status !== self.data.status || data.score !== self.data.score)
         {
             if(self.data.score === data.score)
@@ -247,7 +265,7 @@ function anySubmissions()
     return false;
 }
 
-function checkSubmissions()
+function checkSubmissions(j4f)
 {
     var xhr = new XMLHttpRequest();
     xhr.open('GET', '/api/submission_list', true);
@@ -275,7 +293,7 @@ function checkSubmissions()
                 subm = subm_by_id[id];
             subms.push(subm);
         }
-        if(submsLoaded && currentTask !== null && !have_new_subms)
+        if(submsLoaded && currentTask !== null && !have_new_subms && !j4f)
             alert("Submission failed!");
         if(subms.length && !prev_len && (document.location.pathname.substr(0, 6) == '/task/' || document.location.pathname == '/submissions'))
         {
@@ -494,3 +512,7 @@ window.onpopstate = function(e)
 }
 
 checkSubmissions();
+/*setInterval(function()
+{
+    checkSubmissions(true);
+}, 5000);*/

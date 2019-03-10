@@ -1,4 +1,4 @@
-import brutejudge.http as bj, os, sys, socket, html
+import brutejudge.http as bj, os, sys, socket, html, json
 from brutejudge.error import BruteError
 
 if len(sys.argv) != 3:
@@ -90,7 +90,7 @@ def task_page(task):
         t1 = file.read()
     with open('ejui/compiler.html') as file:
         t2 = file.read()
-    subms, any_subms = format_submissions(td['name'])
+    subms, any_subms, json_subms = format_submissions(td['name'])
     if any_subms:
         with open('ejui/task_subms.html') as file:
             subms = file.read().format(subms=subms)
@@ -102,7 +102,7 @@ def task_page(task):
     if td['compilers']:
         with open('ejui/compilers.html') as file:
             compilers = file.read().format(data=compilers)
-    return format_page('task%d'%task, t1.format(id=task, name=html.escape(td['name']), subms=subms, compilers=compilers), tl=tl)
+    return format_page('task%d'%task, t1.format(id=task, name=html.escape(td['name']), subms=subms, compilers=compilers), tl=tl, subms=json_subms)
 
 @post('/submit/<task:int>')
 @post('/submit/<task:int>/<cmpl:int>')
@@ -126,14 +126,14 @@ def submit(task, cmpl=None):
 
 @route('/submissions')
 def submissions():
-    subms, any_subms = format_submissions(None)
+    subms, any_subms, json_subms = format_submissions(None)
     if any_subms:
         with open('ejui/subms.html') as file:
             subms = file.read().format(subms=subms)
     else:
         with open('ejui/no_subms.html') as file:
             subms = file.read()
-    return format_page('subms', subms)
+    return format_page('subms', subms, subms=json_subms)
 
 @route('/api/submissions/<id:int>')
 def format_protocol(id):
@@ -184,9 +184,10 @@ def logout():
     except KeyError: pass
     return redirect('/')
 
-def format_page(page, text, tl=None):
+def format_page(page, text, tl=None, subms=None):
     url, cookie = force_session()
     if tl == None: tl = bj.task_list(url, cookie)
+    if subms == None: subms = format_submissions(None)[2]
     data = [('main', '/', '<b>ejui</b>')]
     for i, j in enumerate(tl):
         data.append(('task%d'%i, '/task/%d'%i, html.escape(j)))
@@ -209,30 +210,38 @@ def format_page(page, text, tl=None):
     else:
         curr_task = 'null'
     with open('ejui/skel.html') as file:
-        return file.read().format(task=curr_task, head=head, body=text)
+        return file.read().format(task=curr_task, subm_preload=json.dumps(subms), head=head, body=text)
 
 def format_submissions(task=None):
     url, cookie = force_session()
-    a, b = bj.submission_list(url, cookie)
-    ans = ''
-    have_score = False
-    stats_arr = []
-    for i, t in zip(a, b):
-        if task in (t, None):
-            stats = bj.submission_score(url, cookie, i)
-            if stats != None: have_score = True
-            else: stats = ''
-            stats_arr.append(stats)
-    with open('ejui/subm.html' if have_score else 'ejui/subm_no_score.html') as file:
-        tt = file.read()
-    stats_arr = iter(stats_arr)
-    for i, t in zip(a, b):
-        if task in (t, None):
+    json_data = {}
+    with bj.may_cache(url, cookie):
+        a, b = bj.submission_list(url, cookie)
+        ans = ''
+        have_score = False
+        status_arr = []
+        stats_arr = []
+        for i, t in zip(a, b):
             status = bj.submission_status(url, cookie, i)
+            stats = bj.submission_score(url, cookie, i)
+            status_arr.append(status)
+            if stats != None: have_score = True
+            stats_arr.append(stats)
+        with open('ejui/subm.html' if have_score else 'ejui/subm_no_score.html') as file:
+            tt = file.read()
+        status_arr = iter(status_arr)
+        stats_arr = iter(stats_arr)
+        for i, t in zip(a, b):
+            status = next(status_arr)
             stats = next(stats_arr)
-            ans += tt.format(id=i, task=html.escape(t), status=html.escape(status), score=stats)
-    with open('ejui/subms_t.html' if have_score else 'ejui/subms_no_score.html') as file:
-        return (file.read().format(data=ans), b)
+            json_item = {'status': status}
+            if stats != None: json_item['score'] = stats
+            else: stats = ''
+            json_data[i] = json_item
+            if task in (t, None):
+                ans += tt.format(id=i, task=html.escape(t), status=html.escape(status), score=stats)
+        with open('ejui/subms_t.html' if have_score else 'ejui/subms_no_score.html') as file:
+            return (file.read().format(data=ans), b, json_data)
 
 def format_tests(id):
     url, cookie = force_session()
