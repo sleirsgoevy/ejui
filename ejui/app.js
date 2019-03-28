@@ -82,9 +82,16 @@ Submission.prototype.poll = function()
     {
         setTimeout(function()
         {
-            self.data = submPreload[self.id];
+            this.polling = false;
+            var cur = submPreload[self.id];
             delete submPreload[self.id];
-            self.render();
+            if(cur === undefined)
+                self.poll();
+            else
+            {
+                self.data = cur;
+                self.render();
+            }
         }, 0);
         return;
     }

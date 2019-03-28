@@ -139,10 +139,11 @@ def submissions():
 def format_protocol(id):
     id = int(id)
     url, cookie = force_session()
-    tests, any_tests = format_tests(id)
-    if not any_tests:
-        tests = ''
-    err = bj.compile_error(url, cookie, id)
+    with bj.may_cache(url, cookie):
+        tests, any_tests = format_tests(id)
+        if not any_tests:
+            tests = ''
+        err = bj.compile_error(url, cookie, id)
     if err == None:
         err = ''
     else:
