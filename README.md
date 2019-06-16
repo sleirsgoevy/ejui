@@ -17,9 +17,7 @@ No local installation is necessary.
 However, ejui requires brutejudge to function. To download it, run `bash download_brutejudge.sh`.
 Alternatively, you can fetch brutejudge from GitHub:
 
-`git clone https://github.com/sleirsgoevy/brutejudge bj
-
-ln -s bj/brutejudge brutejudge`
+`git clone https://github.com/sleirsgoevy/brutejudge bj; ln -s bj/brutejudge brutejudge`
 
 To run ejui, run the following command:
 
