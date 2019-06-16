@@ -16,7 +16,11 @@ After that, fill in ejui.sh launch script with the required values.
 No local installation is necessary.
 However, ejui requires brutejudge to function. To download it, run `bash download_brutejudge.sh`.
 Alternatively, you can fetch brutejudge from GitHub:
+
 `git clone https://github.com/sleirsgoevy/brutejudge bj
+
 ln -s bj/brutejudge brutejudge`
+
 To run ejui, run the following command:
+
 `python3 ejui.py <bind_addr>:<bind_port> <remote_testsys_addr>`
