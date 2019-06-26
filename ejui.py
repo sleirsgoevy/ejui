@@ -68,41 +68,43 @@ def force_session():
 def task_data(task, tl=None):
     task = int(task)
     url, cookie = force_session()
-    if tl == None: tl = bj.task_list(url, cookie)
-    if task not in range(len(tl)):
-        abort(404)
-    name = tl[task]
-    tids = bj.task_ids(url, cookie)
-    try: tid = tids[task]
-    except IndexError: compilers = []
-    else:
-        try: compilers = bj.compiler_list(url, cookie, tid)
-        except BruteError: compilers = []
-    return {'name': name, 'compilers': compilers}
+    with bj.may_cache(url, cookie):
+        if tl == None: tl = bj.task_list(url, cookie)
+        if task not in range(len(tl)):
+            abort(404)
+        name = tl[task]
+        tids = bj.task_ids(url, cookie)
+        try: tid = tids[task]
+        except IndexError: compilers = []
+        else:
+            try: compilers = bj.compiler_list(url, cookie, tid)
+            except BruteError: compilers = []
+        return {'name': name, 'compilers': compilers}
 
 @route('/task/<task:int>')
 def task_page(task):
     task = int(task)
     url, cookie = force_session()
-    tl = bj.task_list(url, cookie)
-    td = task_data(task, tl=tl)
-    with open('ejui/task.html') as file:
-        t1 = file.read()
-    with open('ejui/compiler.html') as file:
-        t2 = file.read()
-    subms, any_subms, json_subms = format_submissions(td['name'])
-    if any_subms:
-        with open('ejui/task_subms.html') as file:
-            subms = file.read().format(subms=subms)
-    else:
-        subms = ''
-    compilers = ''
-    for a, b, c in td['compilers']:
-        compilers += t2.format(id=a, short_name=html.escape(b), long_name=html.escape(c))
-    if td['compilers']:
-        with open('ejui/compilers.html') as file:
-            compilers = file.read().format(data=compilers)
-    return format_page('task%d'%task, t1.format(id=task, name=html.escape(td['name']), subms=subms, compilers=compilers), tl=tl, subms=json_subms)
+    with bj.may_cache(url, cookie):
+        tl = bj.task_list(url, cookie)
+        td = task_data(task, tl=tl)
+        with open('ejui/task.html') as file:
+            t1 = file.read()
+        with open('ejui/compiler.html') as file:
+            t2 = file.read()
+        subms, any_subms, json_subms = format_submissions(td['name'])
+        if any_subms:
+            with open('ejui/task_subms.html') as file:
+                subms = file.read().format(subms=subms)
+        else:
+            subms = ''
+        compilers = ''
+        for a, b, c in td['compilers']:
+            compilers += t2.format(id=a, short_name=html.escape(b), long_name=html.escape(c))
+        if td['compilers']:
+            with open('ejui/compilers.html') as file:
+                compilers = file.read().format(data=compilers)
+        return format_page('task%d'%task, t1.format(id=task, name=html.escape(td['name']), subms=subms, compilers=compilers), tl=tl, subms=json_subms)
 
 @post('/submit/<task:int>')
 @post('/submit/<task:int>/<cmpl:int>')
@@ -193,19 +195,19 @@ def format_page(page, text, tl=None, subms=None):
     for i, j in enumerate(tl):
         data.append(('task%d'%i, '/task/%d'%i, html.escape(j)))
     data2 = [('error', '', '<div id="error_btn">!</div>'), ('subms', '/submissions', 'Submissions'), ('logout', '/logout', '<img src="/logout.png" alt="Log out" />')]
-    head = '<span class="to_left">'
+    head = ''
     for a, b, c in data:
         head += '<a id="'+a+'" href="'+b+'" onclick="ajax_load(this); return false"'
         if a == page:
             head += ' class=selected'
         head += '>'+c+'</a>'
-    head += '</span><span class="to_right">'
+    head += '</td><td align=right>'
     for a, b, c in data2:
         head += '<a id="'+a+'" href="'+b+'" onclick="ajax_load(this); return false"'
         if a == page:
             head += ' class=selected'
         head += '>'+c+'</a>'
-    head += '</span>'
+    head += ''
     if page.startswith('task'):
         curr_task = repr(tl[int(page[4:])])
     else:
@@ -232,6 +234,7 @@ def format_submissions(task=None):
             tt = file.read()
         status_arr = iter(status_arr)
         stats_arr = iter(stats_arr)
+        any_subms = False
         for i, t in zip(a, b):
             status = next(status_arr)
             stats = next(stats_arr)
@@ -240,6 +243,7 @@ def format_submissions(task=None):
             else: stats = ''
             json_data[i] = json_item
             if task in (t, None):
+                any_subms = True
                 ans += tt.format(id=i, task=html.escape(t), status=html.escape(status), score=stats)
         with open('ejui/subms_t.html' if have_score else 'ejui/subms_no_score.html') as file:
             return (file.read().format(data=ans), b, json_data)

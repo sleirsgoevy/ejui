@@ -274,11 +274,17 @@ function anySubmissions()
 
 function checkSubmissions(j4f)
 {
+    if(!j4f && checkSubmissions.timer !== undefined)
+    {
+        clearTimeout(checkSubmissions.timer);
+        delete checkSubmissions.timer;
+    }
     var xhr = new XMLHttpRequest();
     xhr.open('GET', '/api/submission_list', true);
     xhr.send('');
     xhr.onload = function()
     {
+        checkSubmissions.timer = setTimeout(checkSubmissions, 5000, true);
         var prev_len = subms.length;
         var data = JSON.parse(this.responseText);
         var subm_by_id = {};
@@ -321,6 +327,7 @@ function checkSubmissions(j4f)
         if(subm_table !== null)
             subm_table.refresh();
     }
+    xhr.onerror = checkSubmissions.bind(window, j4f);
 }
 
 function submitSolution()
@@ -518,7 +525,7 @@ window.onpopstate = function(e)
         doAjaxLoad(origPage);
 }
 
-checkSubmissions();
+checkSubmissions(true);
 /*setInterval(function()
 {
     checkSubmissions(true);

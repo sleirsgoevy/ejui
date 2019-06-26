@@ -17,7 +17,7 @@ body
     position: relative;
 }
 
-#header > span > a
+#header span > a, #header td > a
 {
     display: inline-block;
     margin: 0;
@@ -43,16 +43,6 @@ body
     position: absolute;
     top: 5px;
     left: 5px;
-}
-
-.to_left
-{
-    float: left;
-}
-
-.to_right
-{
-    float: right;
 }
 
 .zero_width
