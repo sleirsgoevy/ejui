@@ -57,6 +57,8 @@ Submission.prototype.render = function()
     a.appendChild(document.createTextNode('Show protocol'));
     td.appendChild(a);
     this.render_tr.appendChild(td);
+    if(this.data.score !== undefined && !this.render_table.has_scores)
+        this.render_table.refresh();
     if(this.data.status.substr(this.data.status.length - 3) === '...')
         this.poll();
 }
