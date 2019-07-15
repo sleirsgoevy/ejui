@@ -23,9 +23,10 @@ Submission.prototype.set_render = function(tb, tr)
     this.render();
 }
 
-Submission.prototype.still_running = function()
+Submission.prototype.still_running = function(s)
 {
-    var s = this.data.status;
+    if(s === undefined)
+        s = this.data.status;
     return (s.substr(s.length-3) === '...' || s.indexOf(', ') >= 0 || {'Compiling': true, 'Running': true, 'Judging': true, 'Check failed': true, 'Available for testing': true, 'Full rejudge': true, 'Pending check': true, 'Pending judgement': true}[s]);
 }
 
@@ -65,7 +66,7 @@ Submission.prototype.render = function()
     this.render_tr.appendChild(td);
     if(this.data.score !== undefined && !this.render_table.has_scores)
         this.render_table.refresh();
-    if(this.data.status.substr(this.data.status.length - 3) === '...')
+    if(this.still_running())
         this.poll();
 }
 
@@ -119,7 +120,7 @@ Submission.prototype.poll = function()
             self.poll();
             return;
         }
-        if(data.status.substr(data.status.length - 3) === '...' || data.status !== self.data.status || data.score !== self.data.score)
+        if(this.still_running(data.status) || data.status !== self.data.status || data.score !== self.data.score)
         {
             if(self.data.score === data.score)
             {
