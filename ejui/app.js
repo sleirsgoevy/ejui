@@ -23,9 +23,15 @@ Submission.prototype.set_render = function(tb, tr)
     this.render();
 }
 
+Submission.prototype.still_running = function()
+{
+    var s = this.data.status;
+    return (s.substr(s.length-3) === '...' || s.indexOf(', ') >= 0 || {'Compiling': true, 'Running': true, 'Judging': true, 'Check failed': true, 'Available for testing': true, 'Full rejudge': true, 'Pending check': true, 'Pending judgement': true}[s]);
+}
+
 Submission.prototype.maybePoll = function()
 {
-    if(this.data.status.substr(this.data.status.length - 3) === '...')
+    if(this.still_running())
         this.poll();
 }
 
