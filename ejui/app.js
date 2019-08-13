@@ -284,10 +284,8 @@ function anySubmissions()
 function checkSubmissions(j4f)
 {
     if(!j4f && checkSubmissions.timer !== undefined)
-    {
         clearTimeout(checkSubmissions.timer);
-        delete checkSubmissions.timer;
-    }
+    delete checkSubmissions.timer;
     var xhr = new XMLHttpRequest();
     xhr.open('GET', '/api/submission_list', true);
     xhr.send('');
@@ -356,17 +354,16 @@ function submitSolution()
         alert("No file selected!");
         return;
     }
-    file = file.files[0];
     var xhr = new XMLHttpRequest();
     xhr.open('POST', '/submit/'+document.location.pathname.substr(6)+'/'+cmpl, true);
-    xhr.onload = checkSubmissions.bind(window);
+    xhr.onload = checkSubmissions.bind(window, false);
     var fr = new FileReader();
     fr.onload = function()
     {
         xhr.send(this.result);
         file.files.length = 0;
     }
-    fr.readAsArrayBuffer(file);
+    fr.readAsArrayBuffer(file.files[0]);
 }
 
 var origPage = document.location.pathname;

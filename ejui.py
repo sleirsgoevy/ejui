@@ -228,7 +228,7 @@ def format_submissions(task=None):
             status = bj.submission_status(url, cookie, i)
             stats = bj.submission_score(url, cookie, i)
             status_arr.append(status)
-            if stats != None: have_score = True
+            if stats != None and task in (t, None): have_score = True
             stats_arr.append(stats)
         with open('ejui/subm.html' if have_score else 'ejui/subm_no_score.html') as file:
             tt = file.read()
@@ -246,7 +246,7 @@ def format_submissions(task=None):
                 any_subms = True
                 ans += tt.format(id=i, task=html.escape(t), status=html.escape(status), score=stats)
         with open('ejui/subms_t.html' if have_score else 'ejui/subms_no_score.html') as file:
-            return (file.read().format(data=ans), b, json_data)
+            return (file.read().format(data=ans), any_subms, json_data)
 
 def format_tests(id):
     url, cookie = force_session()
