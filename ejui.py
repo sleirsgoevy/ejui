@@ -220,6 +220,7 @@ def format_submissions(task=None):
     json_data = {}
     with bj.may_cache(url, cookie):
         a, b = bj.submission_list(url, cookie)
+        json_data['list'] = [a, b]
         ans = ''
         have_score = False
         status_arr = []

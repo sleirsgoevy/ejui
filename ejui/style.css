@@ -45,24 +45,29 @@ body
     left: 5px;
 }
 
-.zero_width
+/*.zero_width
 {
 /*  width: 0;
-    overflow: hidden;*/
+    overflow: hidden;*
     opacity: 0;
 }
 
 .zero_height
 {
 /*  height: 0;
-    overflow: hidden;*/
+    overflow: hidden;*
     opacity: 0;
+}*/
+
+/*.transparent
+{
+    opacity: attr(data-opacity, number, 0);
 }
 
 .animated
 {
     transition: all 1s;
-}
+}*/
 
 #body
 {

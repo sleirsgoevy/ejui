@@ -27,7 +27,7 @@ Submission.prototype.still_running = function(s)
 {
     if(s === undefined)
         s = this.data.status;
-    return (s.substr(s.length-3) === '...' || s.indexOf(', ') >= 0 || {'Compiling': true, 'Running': true, 'Judging': true, 'Check failed': true, 'Available for testing': true, 'Full rejudge': true, 'Pending check': true, 'Pending judgement': true}[s]);
+    return (s.substr(s.length-3) === '...' || s.indexOf(', ') >= 0 || {'Compiling': true, 'Running': true, 'Judging': true, 'Check failed': true, 'Available for testing': true, 'Full rejudge': true, 'Pending check': true, 'Pending judgement': true, 'Queue judge': true}[s]);
 }
 
 Submission.prototype.maybePoll = function()
@@ -36,8 +36,43 @@ Submission.prototype.maybePoll = function()
         this.poll();
 }
 
+/*Submission.prototype.saveOpacity = function()
+{
+    if(!this.render_tr)
+        this.totalOpacity = this.scoreOpacity = 0;
+    else
+    {
+        this.totalOpacity = window.getComputedStyle(this.render_tr).opacity;
+        this.scoreOpacity = (this.render_tr.childNodes.length == 5)?window.getComputedStyle(this.render_tr.childNodes[3]).opacity:0;
+    }
+}
+
+Submission.prototype.restoreOpacity = function()
+{
+    if(!this.render_table.animated || !this.render_tr || this.render_tr.className == 'animated transparent')
+        return;
+    var score_td = (this.render_tr.childNodes.length == 5)?this.render_tr.childNodes[3]:null;
+    this.render_tr.className = '';
+    if(score_td !== null)
+        score_td.className = '';
+    this.render_tr.setAttribute('data-opacity', this.totalOpacity);
+    if(score_td !== null)
+        score_td.setAttribute('data-opacity', this.scoreOpacity);
+    this.render_tr.className = 'animated transparent';
+    debugger;
+    setTimeout(function()
+    {
+        this.render_tr.className = 'animated';
+        if(score_td !== null)
+        {
+            score_td.className = 'animated';
+        }
+    }, 1);
+}*/
+
 Submission.prototype.render = function()
 {
+//  this.saveOpacity();
     if(this.render_tr === null || this.render_table === null)
         return;
     while(this.render_tr.firstChild)
@@ -68,10 +103,12 @@ Submission.prototype.render = function()
         this.render_table.refresh();
     if(this.still_running())
         this.poll();
+//  this.restoreOpacity();
 }
 
 Submission.prototype.renderStatusOnly = function()
 {
+//  this.saveOpacity();
     if(this.render_tr && this.render_tr.childNodes.length >= 4)
     {
         this.render_tr.childNodes[2].firstChild.data = this.data.status;
@@ -79,6 +116,21 @@ Submission.prototype.renderStatusOnly = function()
     }
     else
         this.render();
+//  this.restoreOpacity();
+}
+
+Submission.prototype.renderStatusScore = function()
+{
+//  this.saveOpacity();
+    if(this.render_tr && this.render_tr.childNodes.length == 5)
+    {
+        this.render_tr.childNodes[2].firstChild.data = this.data.status;
+        this.render_tr.childNodes[3].firstChild.data = (this.data.score===null||this.data.score===undefined)?'':this.data.score;
+        this.maybePoll();
+    }
+    else
+        this.render();
+//  this.restoreOpacity();
 }
 
 Submission.prototype.poll = function()
@@ -89,20 +141,16 @@ Submission.prototype.poll = function()
     var self = this;
     if(submPreload !== null && submPreload[this.id] !== undefined)
     {
-        setTimeout(function()
+        this.polling = false;
+        var cur = submPreload[self.id];
+        delete submPreload[self.id];
+        if(cur === undefined)
+            self.poll();
+        else
         {
-            this.polling = false;
-            var cur = submPreload[self.id];
-            delete submPreload[self.id];
-            if(cur === undefined)
-                self.poll();
-            else
-            {
-                self.data = cur;
-                self.render();
-            }
-        }, 0);
-        return;
+            self.data = cur;
+            self.render();
+        }
     }
     var xhr = new XMLHttpRequest();
     xhr.open('GET', '/api/submission_list/'+this.id, true);
@@ -130,7 +178,7 @@ Submission.prototype.poll = function()
             else
             {
                 self.data = data;
-                self.render();
+                self.renderStatusScore();
             }
         }
         if((score0 === undefined) != (self.data.score === undefined) && this.render_table !== null)
@@ -202,11 +250,12 @@ SubmissionTable.prototype.refresh = function()
     }
 }
 
-SubmissionTable.prototype.animatedInsert = function(elem, property)
+/*SubmissionTable.prototype.animatedInsert = function(elem, property)
 {
     if(!this.animated)
         return;
-    elem.className = 'animated zero_'+property;
+    elem.setAttribute('data-opacity', '0');
+    elem.className = 'animated transparent';
     setTimeout(function()
     {
         elem.className = 'animated';
@@ -220,16 +269,53 @@ SubmissionTable.prototype.animatedRemove = function(elem, property)
         elem.parentNode.removeChild(elem);
         return;
     }
+    elem.setAttribute('data-opacity', '0');
     elem.className = 'animated';
     setTimeout(function()
     {
-        elem.className = 'animated zero_'+property;
+        elem.className = 'animated transparent';
     }, 1);
     setTimeout(function()
     {
-        if(elem.className == 'animated zero_'+property)
+        if(elem.className == 'animated transparent')
             elem.parentNode.removeChild(elem);
     }, 5000);
+}*/
+
+function requestAnimation(elem, prop, prefix, start, duration, stop, suffix)
+{
+    var startTime = +new Date();
+    function callback()
+    {
+        var curTime = +new Date();
+        if(curTime > startTime + duration)
+        {
+            elem.style[prop] = prefix+stop+suffix;
+            return;
+        }
+        var curValue = start + (stop - start) * (curTime - startTime) / duration;
+        elem.style[prop] = prefix+curValue+suffix;
+        requestAnimationFrame(callback);
+    }
+    requestAnimationFrame(callback);
+}
+
+SubmissionTable.prototype.animatedInsert = function(elem)
+{
+    if(!this.animated)
+        return;
+    requestAnimation(elem, 'opacity', '', 0, 1000, 1, '');
+}
+
+SubmissionTable.prototype.animatedRemove = function(elem)
+{
+    if(!this.animated)
+        return;
+    requestAnimation(elem, 'opacity', '', 1, 1000, 0, '');
+    setTimeout(function()
+    {
+        elem.parentNode.removeChild(elem);
+    }, 1000);
 }
 
 SubmissionTable.prototype.addScores = function()
@@ -286,14 +372,10 @@ function checkSubmissions(j4f)
     if(!j4f && checkSubmissions.timer !== undefined)
         clearTimeout(checkSubmissions.timer);
     delete checkSubmissions.timer;
-    var xhr = new XMLHttpRequest();
-    xhr.open('GET', '/api/submission_list', true);
-    xhr.send('');
-    xhr.onload = function()
+    function callback(data, preloaded)
     {
         checkSubmissions.timer = setTimeout(checkSubmissions, 5000, true);
         var prev_len = subms.length;
-        var data = JSON.parse(this.responseText);
         var subm_by_id = {};
         for(var i = 0; i < subms.length; i++)
             subm_by_id[subms[i].id] = subms[i];
@@ -332,7 +414,35 @@ function checkSubmissions(j4f)
         }
         submsLoaded = true;
         if(subm_table !== null)
+        {
+            if(preloaded)
+                subm_table.animated = false;
             subm_table.refresh();
+            if(preloaded)
+                subm_table.animated = true;
+        }
+    }
+    if(submPreload.list)
+    {
+        callback({list: submPreload.list}, true);
+        submPreload.list = undefined;
+        return;
+    }
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', '/api/submission_list', true);
+    xhr.send('');
+    xhr.onload = function()
+    {
+        try
+        {
+            var data = JSON.parse(this.responseText);
+        }
+        catch(e)
+        {
+            setTimeout(checkSubmissions.bind(window, j4f), 0);
+            throw e;
+        }
+        callback(data);
     }
     xhr.onerror = checkSubmissions.bind(window, j4f);
 }
@@ -345,7 +455,7 @@ function submitSolution()
     else
     {
         cmpl = Number(cmpl.value);
-        if(cmpl * 0)
+        if((''+cmpl) == 'NaN')
             cmpl = '0';
     }
     var file = document.getElementById('file');
@@ -402,21 +512,6 @@ function doAjaxLoad(page)
             var h1 = document.createElement('h1');
             h1.appendChild(document.createTextNode('Task '+data.name));
             body.appendChild(h1);
-            var span = document.createElement('span');
-            span.id = 'subm_cont';
-            if(anySubmissions())
-            {
-                var h2 = document.createElement('h2');
-                h2.appendChild(document.createTextNode('Submissions'));
-                span.appendChild(h2);
-                var subm_t = document.createElement('table');
-                subm_t.setAttribute('cellspacing', '0');
-                subm_t.setAttribute('border', '1');
-                subm_t.innerHTML = '<tr><th>ID</th><th>Task</th><th>Status</th><th>Protocol</th></tr>';
-                subm_table = new SubmissionTable(subms, subm_t);
-                span.appendChild(subm_t);
-            }
-            body.append(span);
             var h2 = document.createElement('h2');
             h2.appendChild(document.createTextNode('Submit a solution'));
             body.appendChild(h2);
@@ -475,6 +570,21 @@ function doAjaxLoad(page)
             formTR(null, isubmit);
             form.appendChild(formtab);
             body.appendChild(form);
+            var span = document.createElement('span');
+            span.id = 'subm_cont';
+            if(anySubmissions())
+            {
+                var h2 = document.createElement('h2');
+                h2.appendChild(document.createTextNode('Submissions'));
+                span.appendChild(h2);
+                var subm_t = document.createElement('table');
+                subm_t.setAttribute('cellspacing', '0');
+                subm_t.setAttribute('border', '1');
+                subm_t.innerHTML = '<tr><th>ID</th><th>Task</th><th>Status</th><th>Protocol</th></tr>';
+                subm_table = new SubmissionTable(subms, subm_t);
+                span.appendChild(subm_t);
+            }
+            body.appendChild(span);
         }
     }
     else if(page == '/submissions')

@@ -1,11 +1,8 @@
 <h1>Task {name}</h1>
-{subms}
 <h2>Submit a solution</h2>
 <form id="submit_form" action="/submit/{id}" method="post" enctype="multipart/form-data" onsubmit="submitSolution(); return false">
 <table>
-<span id="subm_cont">
 {compilers}
-</span>
 <tr>
 <td><label for="file">Solution:</label></td>
 <td><input type="file" id="file" name="file" /></td>
@@ -16,3 +13,6 @@
 </tr>
 </table>
 </form>
+<span id="subm_cont">
+{subms}
+</span>
