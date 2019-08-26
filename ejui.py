@@ -145,7 +145,10 @@ def format_protocol(id):
         tests, any_tests = format_tests(id)
         if not any_tests:
             tests = ''
-        err = bj.compile_error(url, cookie, id)
+        try: err = bj.compile_error(url, cookie, id)
+        except:
+            import traceback
+            err = traceback.format_exc()
     if err == None:
         err = ''
     else:
