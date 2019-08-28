@@ -3,7 +3,7 @@ import http.server, tarfile, gzip, io
 class Handler(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
         if self.path == '/':
-            data = open('setup.sh', 'rb').read()
+            data = open('web-setup.sh', 'rb').read()
         elif self.path == '/ejui.tar.gz':
             i = io.BytesIO()
             j = gzip.GzipFile('ejui.tar.gz', 'w', fileobj=i)
