@@ -20,5 +20,6 @@ setuptools.setup(
     dependency_links = ['https://github.com/sleirsgoevy/brutejudge/tarball/master#egg=brutejudge-dev'],
     entry_points = {
         'console_scripts': ['ejui = ejui.__main__']
-    }
+    },
+    zip_safe = False
 )
