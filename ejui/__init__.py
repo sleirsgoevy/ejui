@@ -136,7 +136,7 @@ def format_protocol(id):
         except:
             import traceback
             err = traceback.format_exc()
-    if err == None:
+    if not err:
         err = ''
     else:
         err = pkgutil.get_data('ejui', 'compile_error.html').decode('utf-8').format(err=html.escape(err))

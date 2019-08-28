@@ -21,5 +21,5 @@ setuptools.setup(
     entry_points = {
         'console_scripts': ['ejui = ejui.__main__']
     },
-    zip_safe = False
+    package_data = {'ejui': ['*.html', '*.css', '*.js', '*.png']}
 )
