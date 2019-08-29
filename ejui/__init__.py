@@ -13,8 +13,16 @@ def get_session():
 @application.route('/')
 def main_page():
     if get_session() == None:
-        response.set_header('Content-Type', 'text/html; charset=utf-8')
-        return pkgutil.get_data('ejui', 'login.html')
+        login_type = bj.login_type(tgt_addr)
+        if not login_type: return do_login()
+        login_page = pkgutil.get_data('ejui', 'login.html').decode('utf-8')
+        login_field = pkgutil.get_data('ejui', 'login_field.html').decode('utf-8')
+        fields = ''
+        if 'login' in login_type:
+            fields += login_field.format(name='login', label='Login: ', type='text')
+        if 'pass' in login_type:
+            fields += login_field.format(name='pass', label='Password: ', type='password')
+        return login_page.format(fields=fields)
     return format_page('main', pkgutil.get_data('ejui', 'main.html').decode('utf-8'))
 
 @application.route('/style.css')
@@ -36,8 +44,8 @@ def logout_png():
 def do_login():
     login = request.forms.get('login', default=None)
     pass_ = request.forms.get('pass', default=None)
-    if login == None or pass_ == None:
-        return redirect('/')
+#   if login == None or pass_ == None:
+#       return redirect('/')
     message = None
     try: url, cookie = bj.login(tgt_addr, login, pass_)
     except (BruteError, socket.error) as e:
