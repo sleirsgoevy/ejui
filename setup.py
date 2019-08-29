@@ -16,7 +16,7 @@ setuptools.setup(
     name = 'ejui',
     version = get_version(),
     packages = setuptools.find_packages(),
-    install_requires = ['brutejudge'],
+    install_requires = ['brutejudge', 'bottle'],
     dependency_links = ['https://github.com/sleirsgoevy/brutejudge/tarball/master#egg=brutejudge-dev'],
     entry_points = {
         'console_scripts': ['ejui = ejui.__main__']
