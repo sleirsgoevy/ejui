@@ -620,6 +620,17 @@ function doAjaxLoad(page)
             document.getElementById('body').innerHTML = this.responseText;
         }
     }
+    else if(page.substr(0, 11) == '/scoreboard')
+    {
+        select_item('scoreboard');
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', '/api'+page, true);
+        xhr.send('');
+        xhr.onload = function()
+        {
+            document.getElementById('body').innerHTML = this.responseText;
+        }
+    }
     else
         document.location.replace(page);
 }

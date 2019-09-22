@@ -154,6 +154,26 @@ def format_protocol(id):
 def protocol(id):
     return format_page('protocol', format_protocol(id))
 
+@application.route('/api/scoreboard')
+def format_scoreboard():
+    url, cookie = force_session()
+    with bj.may_cache(url, cookie):
+        data = bj.scoreboard(url, cookie)
+        tasks = bj.task_list(url, cookie)
+    task = pkgutil.get_data('ejui', 'scoreboard_task.html').decode('utf-8')
+    tasks = ''.join(task.format(name=html.escape(i)) for i in tasks)
+    contestant = pkgutil.get_data('ejui', 'contestant.html').decode('utf-8')
+    contestant_task = pkgutil.get_data('ejui', 'contestant_task.html').decode('utf-8')
+    contestants = []
+    for index, (nickname, scores) in enumerate(data):
+        cur_tasks = ''.join('<td></td>' if i == None else contestant_task.format(kind=('ok' if i[1] >= 0 else 'fail'), score=i[0], attempts=('+' if i[1] == 0 else '+%d' if i[1] >= 0 else str(i[1]))) for i in scores)
+        contestants.append(contestant.format(index=index+1, nickname=nickname, tasks=cur_tasks))
+    return pkgutil.get_data('ejui', 'scoreboard.html').decode('utf-8').format(tasks=tasks, contestants=''.join(contestants))
+
+@application.route('/scoreboard')
+def scoreboard():
+    return format_page('scoreboard', format_scoreboard())
+
 @application.route('/api/submission_list')
 def submission_list():
     url, cookie = force_session()
@@ -190,7 +210,7 @@ def format_page(page, text, tl=None, subms=None):
     data = [('main', '/', '<b>ejui</b>')]
     for i, j in enumerate(tl):
         data.append(('task%d'%i, '/task/%d'%i, html.escape(j)))
-    data2 = [('error', '', '<div id="error_btn">!</div>'), ('subms', '/submissions', 'Submissions'), ('logout', '/logout', '<img src="/logout.png" alt="Log out" />')]
+    data2 = [('error', '', '<div id="error_btn">!</div>'), ('subms', '/submissions', 'Submissions'), ('scoreboard', '/scoreboard', 'Scoreboard'), ('logout', '/logout', '<img src="/logout.png" alt="Log out" />')]
     head = ''
     for a, b, c in data:
         head += '<a id="'+a+'" href="'+b+'" onclick="ajax_load(this); return false"'
