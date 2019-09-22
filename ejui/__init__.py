@@ -1,5 +1,6 @@
 import brutejudge.http as bj, os, sys, socket, html, json, pkgutil, bottle
 from brutejudge.error import BruteError
+from brutejudge.commands.scoreboard import format_single as sb_format_single
 from bottle import abort, request, response, redirect, run, static_file
 
 application = bottle.Bottle()
@@ -166,7 +167,7 @@ def format_scoreboard():
     contestant_task = pkgutil.get_data('ejui', 'contestant_task.html').decode('utf-8')
     contestants = []
     for index, (nickname, scores) in enumerate(data):
-        cur_tasks = ''.join('<td></td>' if i == None else contestant_task.format(kind=('ok' if i[1] >= 0 else 'fail'), score=i[0], attempts=('+' if i[1] == 0 else '+%d' if i[1] >= 0 else str(i[1]))) for i in scores)
+        cur_tasks = ''.join('<td></td>' if i == None else contestant_task.format(kind=(('ok' if i[1] >= 0 else 'fail') if i[1] != None else 'unknown'), score=sb_format_single(*i)) for i in scores)
         contestants.append(contestant.format(index=index+1, nickname=nickname, tasks=cur_tasks))
     return pkgutil.get_data('ejui', 'scoreboard.html').decode('utf-8').format(tasks=tasks, contestants=''.join(contestants))
 
