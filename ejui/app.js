@@ -628,6 +628,8 @@ function doAjaxLoad(page)
         xhr.send('');
         xhr.onload = function()
         {
+            if(this.status == 500)
+                select_item('error');
             document.getElementById('body').innerHTML = this.responseText;
         }
     }

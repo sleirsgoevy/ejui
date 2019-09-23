@@ -156,10 +156,16 @@ def protocol(id):
     return format_page('protocol', format_protocol(id))
 
 @application.route('/api/scoreboard')
-def format_scoreboard():
+def format_scoreboard(aug=lambda y, x: x):
     url, cookie = force_session()
     with bj.may_cache(url, cookie):
-        data = bj.scoreboard(url, cookie)
+        try: data = bj.scoreboard(url, cookie)
+        except BruteError as e:
+            bottle.response.status = 500
+            return aug(True, '<pre>'+html.escape(str(e))+'</pre>')
+        except:
+            bottle.response.status = 500
+            return aug(True, '<pre>Internal server error</pre>')
         tasks = bj.task_list(url, cookie)
     task = pkgutil.get_data('ejui', 'scoreboard_task.html').decode('utf-8')
     tasks = ''.join(task.format(name=html.escape(i)) for i in tasks)
@@ -169,11 +175,12 @@ def format_scoreboard():
     for index, (nickname, scores) in enumerate(data):
         cur_tasks = ''.join('<td></td>' if i == None else contestant_task.format(kind=(('ok' if i[1] >= 0 else 'fail') if i[1] != None else 'unknown'), score=sb_format_single(*i)) for i in scores)
         contestants.append(contestant.format(index=index+1, nickname=nickname, tasks=cur_tasks))
-    return pkgutil.get_data('ejui', 'scoreboard.html').decode('utf-8').format(tasks=tasks, contestants=''.join(contestants))
+    return aug(False, pkgutil.get_data('ejui', 'scoreboard.html').decode('utf-8').format(tasks=tasks, contestants=''.join(contestants)))
 
 @application.route('/scoreboard')
 def scoreboard():
-    return format_page('scoreboard', format_scoreboard())
+    err, ans = format_scoreboard(aug=lambda *args: args)
+    return format_page('error' if err else 'scoreboard', ans)
 
 @application.route('/api/submission_list')
 def submission_list():
