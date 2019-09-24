@@ -21,6 +21,7 @@ Submission.prototype.set_render = function(tb, tr)
     this.render_table = tb;
     this.render_tr = tr;
     this.render();
+    this.animatedPoll();
 }
 
 Submission.prototype.still_running = function(s)
@@ -183,6 +184,8 @@ Submission.prototype.poll = function()
         }
         if((score0 === undefined) != (self.data.score === undefined) && this.render_table !== null)
             this.render_table.refresh();
+        if(!this.still_running(data.status))
+            this.render_table.animatedEnable(this.render_tr);
     }.bind(this);
 }
 
@@ -228,7 +231,7 @@ SubmissionTable.prototype.refresh = function()
         if(subms[i].render_tr === null)
         {
             subms[i].set_render(this, document.createElement('tr'));
-            this.animatedInsert(subms[i].render_tr, 'height');
+//          this.animatedInsert(subms[i].render_tr, 'height');
         }
         var tr = subms[i].render_tr;
         if(prev !== null)
@@ -284,9 +287,19 @@ SubmissionTable.prototype.animatedRemove = function(elem, property)
 
 function requestAnimation(elem, prop, prefix, start, duration, stop, suffix)
 {
+    if(elem.ejuiAnimation)
+        elem.ejuiAnimation.cancel = true;
+    if(start === null)
+    {
+        start = elem.style[prop];
+        start = +start.substr(prefix.length, start.length - prefix.length - suffix.length);
+    }
+    var canceller = {cancel: false};
     var startTime = +new Date();
     function callback()
     {
+        if(canceller.cancel)
+            return;
         var curTime = +new Date();
         if(curTime > startTime + duration)
         {
@@ -298,24 +311,52 @@ function requestAnimation(elem, prop, prefix, start, duration, stop, suffix)
         requestAnimationFrame(callback);
     }
     requestAnimationFrame(callback);
+    return elem.ejuiAnimation = canceller;
 }
 
 SubmissionTable.prototype.animatedInsert = function(elem)
 {
     if(!this.animated)
         return;
-    requestAnimation(elem, 'opacity', '', 0, 1000, 1, '');
+    requestAnimation(elem, 'opacity', '', 0, 250, 1, '');
 }
 
 SubmissionTable.prototype.animatedRemove = function(elem)
 {
     if(!this.animated)
         return;
-    requestAnimation(elem, 'opacity', '', 1, 1000, 0, '');
+    var anim = requestAnimation(elem, 'opacity', '', null, 250, 0, '');
     setTimeout(function()
     {
-        elem.parentNode.removeChild(elem);
-    }, 1000);
+        if(!anim.cancel)
+            elem.parentNode.removeChild(elem);
+    }, 250);
+}
+
+SubmissionTable.prototype.animatedEnable = function(elem)
+{
+    if(!this.animated)
+        return;
+    requestAnimation(elem, 'opacity', '', null, 250, 1, '');
+}
+
+Submission.prototype.animatedPoll = function()
+{
+    var state = 0;
+    function doAnimate(elem)
+    {
+        var anim = requestAnimation(elem, 'opacity', '', state, 1000, 1-state, '');
+        setTimeout(function(cont)
+        {
+            console.log("doAnimate "+!anim.cancel);
+            if(!anim.cancel)
+            {
+                state = 1-state;
+                doAnimate(elem);
+            }
+        }, 1000);
+    }
+    doAnimate(this.render_tr);
 }
 
 SubmissionTable.prototype.addScores = function()
