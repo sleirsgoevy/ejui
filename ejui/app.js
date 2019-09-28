@@ -533,10 +533,12 @@ function doAjaxLoad(page)
         subm_table = null;
     }
     currentTask = null;
+    setCover(true);
     if(page == '/')
     {
         select_item('main');
         document.getElementById('body').innerHTML = '<h1>This is EJUI!</h1>';
+        setCover(false);
     }
     else if(page.substr(0, 6) == '/task/')
     {
@@ -546,6 +548,7 @@ function doAjaxLoad(page)
         xhr.send('');
         xhr.onload = function()
         {
+            setCover(false);
             var body = document.getElementById('body');
             body.innerHTML = '';
             var data = JSON.parse(xhr.responseText);
@@ -630,6 +633,7 @@ function doAjaxLoad(page)
     }
     else if(page == '/submissions')
     {
+        setCover(false);
         select_item('subms');
         var body = document.getElementById('body');
         var span = document.createElement('span');
@@ -658,6 +662,7 @@ function doAjaxLoad(page)
         xhr.send('');
         xhr.onload = function()
         {
+            setCover(false);
             document.getElementById('body').innerHTML = this.responseText;
         }
     }
@@ -669,6 +674,7 @@ function doAjaxLoad(page)
         xhr.send('');
         xhr.onload = function()
         {
+            setCover(false);
             if(this.status == 500)
                 select_item('error');
             document.getElementById('body').innerHTML = this.responseText;
@@ -700,3 +706,22 @@ checkSubmissions(true);
 {
     checkSubmissions(true);
 }, 5000);*/
+
+function setCover(f)
+{
+    var elem = document.getElementById('cover');
+    if(f)
+    {
+        elem.style.display = 'block';
+        requestAnimation(elem, 'opacity', '', null, 500, 0.3, '');
+    }
+    else
+    {
+        requestAnimation(elem, 'opacity', '', null, 100, 0, '');
+        setTimeout(function()
+        {
+            if(!elem.ejuiAnimation.cancel)
+                elem.style.display = 'none';
+        }, 100);
+    }
+}
