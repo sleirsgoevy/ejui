@@ -98,3 +98,28 @@ body
     display: none;
     opacity: 0;
 }
+
+#scoreboard tr:nth-child(1) > *
+{
+    border-bottom: 1px solid black;
+}
+
+#scoreboard tr:nth-child(2n)
+{
+    background: darkgray;
+}
+
+#scoreboard tr:nth-child(2n+1)
+{
+    background: gray;
+}
+
+#scoreboard tr > *
+{
+    padding: 5px;
+}
+
+#scoreboard tr > :nth-child(n+2)
+{
+    border-left: 1px solid black;
+}
