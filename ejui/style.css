@@ -3,7 +3,7 @@ body
     margin: 0;
 }
 
-.selected
+.selected, button:active, input[type=submit]:active
 {
     background: #300;
 }
@@ -18,15 +18,25 @@ body
     z-index: 3;
 }
 
-#header span > a, #header td > a
+#header span > a, #header td > a, button, input[type=submit]
 {
     display: inline-block;
-    margin: 0;
-    padding: 5px;
     display: inline-block;
     font-size: 24pt;
     color: white;
     text-decoration: none;
+}
+
+#header span > a, #header td > a
+{
+    margin: 0;
+    padding: 5px;
+}
+
+button, input[type=submit]
+{
+    background: red;
+    border: none;
 }
 
 #logout
@@ -122,4 +132,12 @@ body
 #scoreboard tr > :nth-child(n+2)
 {
     border-left: 1px solid black;
+}
+
+.btn_link
+{
+    display: inline-block;
+    text-decoration: none;
+    border-bottom: 1px dashed lightblue;
+    color: lightblue;
 }

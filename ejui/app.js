@@ -14,14 +14,15 @@ function Submission(id, task)
     this.render_table = null;
     this.render_tr = null;
     this.polling = false;
+    this.firstPoll = true;
 }
 
 Submission.prototype.set_render = function(tb, tr)
 {
+    this.firstPoll = true;
     this.render_table = tb;
     this.render_tr = tr;
     this.render();
-    this.animatedPoll();
 }
 
 Submission.prototype.still_running = function(s)
@@ -139,10 +140,15 @@ Submission.prototype.poll = function()
     if(this.polling)
         return;
     this.polling = true;
+    if(this.firstPoll)
+    {
+        this.firstPoll = false;
+        this.animatedPoll();
+    }
     var self = this;
     if(submPreload !== null && submPreload[this.id] !== undefined)
     {
-        this.polling = false;
+        self.polling = false;
         var cur = submPreload[self.id];
         delete submPreload[self.id];
         if(cur === undefined)
@@ -151,7 +157,10 @@ Submission.prototype.poll = function()
         {
             self.data = cur;
             self.render();
+            if(!self.still_running(self.data.status) && self.render_table !== null)
+                self.render_table.animatedEnable(self.render_tr);
         }
+        return;
     }
     var xhr = new XMLHttpRequest();
     xhr.open('GET', '/api/submission_list/'+this.id, true);
@@ -159,7 +168,7 @@ Submission.prototype.poll = function()
     xhr.onload = function() 
     {
         var score0 = self.data.score;
-        this.polling = false;
+        self.polling = false;
         try
         {
             var data = JSON.parse(xhr.responseText);
@@ -169,7 +178,7 @@ Submission.prototype.poll = function()
             self.poll();
             return;
         }
-        if(this.still_running(data.status) || data.status !== self.data.status || data.score !== self.data.score)
+        if(self.still_running(data.status) || data.status !== self.data.status || data.score !== self.data.score)
         {
             if(self.data.score === data.score)
             {
@@ -182,10 +191,10 @@ Submission.prototype.poll = function()
                 self.renderStatusScore();
             }
         }
-        if((score0 === undefined) != (self.data.score === undefined) && this.render_table !== null)
-            this.render_table.refresh();
-        if(!this.still_running(data.status))
-            this.render_table.animatedEnable(this.render_tr);
+        if((score0 === undefined) != (self.data.score === undefined) && self.render_table !== null)
+            self.render_table.refresh();
+        if(!self.still_running(data.status))
+            self.render_table.animatedEnable(self.render_tr);
     }.bind(this);
 }
 
@@ -336,12 +345,19 @@ SubmissionTable.prototype.animatedRemove = function(elem)
 SubmissionTable.prototype.animatedEnable = function(elem)
 {
     if(!this.animated)
-        return;
-    requestAnimation(elem, 'opacity', '', null, 250, 1, '');
+    {
+        if(elem.ejuiAnimation && !elem.ejuiAnimation.cancel)
+            elem.ejuiAnimation.cancel = true;
+        elem.style.opacity = 1;
+    }
+    else
+        requestAnimation(elem, 'opacity', '', null, 250, 1, '');
 }
 
 Submission.prototype.animatedPoll = function()
 {
+    if(this.render_tr === null || this.render_table == null)
+        return;
     var state = 0;
     function doAnimate(elem)
     {
@@ -416,6 +432,22 @@ function checkSubmissions(j4f)
     function callback(data, preloaded)
     {
         checkSubmissions.timer = setTimeout(checkSubmissions, 5000, true);
+	while(data.list[0].length && !subms.length && (document.location.pathname.substr(0, 6) == '/task/' || document.location.pathname == '/submissions'))
+        {
+            var a = document.getElementById('subm_cont');
+            var b = document.getElementById('submissions');
+            if(b === null)
+            {
+                if(a === null)
+                    break;
+                var h = (document.location.pathname.substr(0, 6) == '/task/')?'2':'1';
+                a.innerHTML = '<h'+h+'>Submissions</h'+h+'><table id=submissions cellspacing=0 border=1><tr><td>ID</td><td>Task</td><td>Status</td><td>Protocol</td></tr></table>';
+                b = document.getElementById('submissions');
+            }
+            subm_table = new SubmissionTable(subms, b);
+            a.style.display = (data.list[0].length?'inline':'none');
+            break;
+        }
         var prev_len = subms.length;
         var subm_by_id = {};
         for(var i = 0; i < subms.length; i++)
@@ -438,21 +470,7 @@ function checkSubmissions(j4f)
         }
         if(submsLoaded && currentTask !== null && !have_new_subms && !j4f)
             alert("Submission failed!");
-        if(subms.length && !prev_len && (document.location.pathname.substr(0, 6) == '/task/' || document.location.pathname == '/submissions'))
-        {
-            var a = document.getElementById('subm_cont');
-            var b = document.getElementById('submissions');
-            if(b === null)
-            {
-                if(a === null)
-                    return;
-                var h = (document.location.pathname.substr(0, 6) == '/task/')?'2':'1';
-                a.innerHTML = '<h'+h+'>Submissions</h'+h+'><table id=submissions cellspacing=0 border=1><tr><td>ID</td><td>Task</td><td>Status</td><td>Protocol</td></tr></table>';
-                b = document.getElementById('submissions');
-            }
-            subm_table = new SubmissionTable(subms, b);
-            a.style.display = (subms.length?'inline':'none');
-        }
+//      if(subms.length && !prev_len && (document.location.pathname.substr(0, 6) == '/task/' || document.location.pathname == '/submissions'))
         submsLoaded = true;
         if(subm_table !== null)
         {
@@ -570,7 +588,7 @@ function doAjaxLoad(page)
                 return false;
             }
             var formtab = document.createElement('table');
-            var formTR = function(a, b)
+            var formTR = function(a, b, c)
             {
                 var tr = document.createElement('tr');
                 var td1 = document.createElement('td');
@@ -579,8 +597,12 @@ function doAjaxLoad(page)
                 var td2 = document.createElement('td');
                 if(b !== null)
                     td2.appendChild(b);
+                var td3 = document.createElement('td');
+                if(c !== null)
+                    td3.appendChild(c);
                 tr.appendChild(td1);
                 tr.appendChild(td2);
+                tr.appendChild(td3);
                 formtab.appendChild(tr);
             }
             if(data.compilers.length)
@@ -601,17 +623,20 @@ function doAjaxLoad(page)
                     opt.appendChild(document.createTextNode(data.compilers[i][2]));
                     compiler_select.appendChild(opt);
                 }
-                formTR(document.createTextNode('Language:'), compiler_select);
+                formTR(document.createTextNode('Language:'), compiler_select, null);
             }
             var ifile = document.createElement('input');
             ifile.id = 'file';
             ifile.type = 'file';
             ifile.name = 'file';
-            formTR(document.createTextNode('Solution:'), ifile);
+            formTR(document.createTextNode('Solution:'), ifile, null);
             var isubmit = document.createElement('input');
             isubmit.type = 'submit';
             isubmit.value = 'Submit a solution';
-            formTR(null, isubmit);
+            var lask = document.createElement('a');
+            lask.href = '/clars/'+page.substr(6);
+            lask.appendChild(document.createTextNode('Ask a question'));
+            formTR(null, isubmit, null);
             form.appendChild(formtab);
             body.appendChild(form);
             var span = document.createElement('span');
@@ -701,7 +726,6 @@ window.onpopstate = function(e)
         doAjaxLoad(origPage);
 }
 
-checkSubmissions(true);
 /*setInterval(function()
 {
     checkSubmissions(true);
