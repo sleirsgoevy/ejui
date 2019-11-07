@@ -634,9 +634,9 @@ function doAjaxLoad(page)
             isubmit.type = 'submit';
             isubmit.value = 'Submit a solution';
             var lask = document.createElement('a');
-            lask.href = '/clars/'+page.substr(6);
+            lask.href = '/clars/submit/'+page.substr(6);
             lask.appendChild(document.createTextNode('Ask a question'));
-            formTR(null, isubmit, null);
+            formTR(null, isubmit, lask);
             form.appendChild(formtab);
             body.appendChild(form);
             var span = document.createElement('span');

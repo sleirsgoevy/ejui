@@ -36,15 +36,16 @@ def app_js():
     response.set_header('Content-Type', 'application/javascript; charset=utf-8')
     return pkgutil.get_data('ejui', 'app.js')
 
-@application.route('/logout.png')
-def logout_png():
+@application.route('/<icon>.png')
+def logout_png(icon):
     response.set_header('Content-Type', 'image/png')
-    return pkgutil.get_data('ejui', 'logout.png')
+    try: return pkgutil.get_data('ejui', icon+'.png')
+    except OSError: error(404)
 
 @application.post('/')
 def do_login():
-    login = request.forms.get('login', default=None)
-    pass_ = request.forms.get('pass', default=None)
+    login = request.forms.get('login', default=None).encode('latin-1').decode('utf-8', 'replace')
+    pass_ = request.forms.get('pass', default=None).encode('latin-1').decode('utf-8', 'replace')
 #   if login == None or pass_ == None:
 #       return redirect('/')
     message = None
@@ -198,11 +199,66 @@ def submission_list_item(id):
         data['score'] = score
     return data
 
-@application.route('/api/stats/<id>')
+@application.route('/api/stats/<id:int>')
 def submission_stats(id):
     id = int(id)
     url, cookie = force_session()
     return bj.submission_stats(url, cookie, id)[0]
+
+@application.route('/clars')
+def clar_list():
+    url, cookie = force_session()
+    t1 = pkgutil.get_data('ejui', 'clar.html').decode('utf-8')
+    clars = ''
+    clar_list = list(zip(*bj.clars(url, cookie)))
+    for i, n in clar_list:
+        clars += t1.format(id=i, title=html.escape(n))
+    if clars: clars = pkgutil.get_data('ejui', 'clars_table.html').decode('utf-8').format(clars=clars)
+    else: clars = pkgutil.get_data('ejui', 'no_clars.html').decode('utf-8')
+    return format_page('clars', pkgutil.get_data('ejui', 'clars.html').decode('utf-8').format(clars=clars), clars=clar_list)
+
+@application.route('/api/clars/<id:int>')
+def api_clar_view(id, clar_list=None):
+    id = int(id)
+    url, cookie = force_session()
+    if clar_list == None: clar_list = list(zip(*bj.clars(url, cookie)))
+    for i, n in clar_list:
+        if i == id: break
+    else: abort(404)
+    title = n
+    text = bj.read_clar(url, cookie, i)
+    return pkgutil.get_data('ejui', 'clar_view.html').decode('utf-8').format(id=id, title=title, text=text)
+
+@application.route('/clars/<id:int>')
+def clar_view(id):
+    id = int(id)
+    url, cookie = force_session()
+    clar_list = list(zip(*bj.clars(url, cookie)))
+    return format_page('clars', api_clar_view(id, clar_list), clars=clar_list)
+
+@application.route('/clars/submit/<task:int>')
+def clar_form(task):
+    task = int(task)
+    url, cookie = force_session()
+    tl = bj.task_list(url, cookie)
+    if task not in range(len(tl)):
+        abort(404)
+    name = tl[task]
+    return format_page('clars', pkgutil.get_data('ejui', 'submit_clar.html').decode('utf-8').format(id=task, name=html.escape(name)))
+
+@application.post('/clars/submit/<task:int>')
+def submit_clar(task):
+    task = int(task)
+    title = bottle.request.forms.get('title', '').encode('latin-1').decode('utf-8', 'replace')
+    text = bottle.request.forms.get('text', '').encode('latin-1').decode('utf-8', 'replace')
+    if not title or not text:
+        return format_page('error', pkgutil.get_data('ejui', 'malformed_clar.html').decode('utf-8'))
+    url, cookie = force_session()
+    tl = bj.task_ids(url, cookie)
+    if task not in range(len(tl)):
+        abort(404)
+    bj.submit_clar(url, cookie, tl[task], title, text)
+    bottle.redirect('/clars')
 
 @application.route('/logout')
 def logout():
@@ -211,26 +267,28 @@ def logout():
     except KeyError: pass
     return redirect('/')
 
-def format_page(page, text, tl=None, subms=None):
+def format_page(page, text, tl=None, subms=None, clars=None):
     url, cookie = force_session()
     if tl == None: tl = bj.task_list(url, cookie)
+    if clars == None: clars = list(zip(*bj.clars(url, cookie)))
     if subms == None: subms = format_submissions(None)[2]
-    data = [('main', '/', '<b>ejui</b>')]
+    data = [('main', '', '/', '<b>ejui</b>')]
     for i, j in enumerate(tl):
-        data.append(('task%d'%i, '/task/%d'%i, html.escape(j)))
-    data2 = [('error', '', '<div id="error_btn">!</div>'), ('subms', '/submissions', 'Submissions'), ('scoreboard', '/scoreboard', 'Scoreboard'), ('logout', '/logout', '<img src="/logout.png" alt="Log out" />')]
+        data.append(('task%d'%i, '', '/task/%d'%i, html.escape(j)))
+    data2 = [('error', '', '', '<div id="error_btn">!</div>'), ('subms', '', '/submissions', 'Submissions'), ('scoreboard', '', '/scoreboard', 'Scoreboard'), ('logout', 'toolbar_icon', '/logout', '<img src="/logout.png" alt="Log out" />')]
+    if clars or page == 'clars': data2.insert(3, ('clars', 'toolbar_icon', '/clars', '<img src="/mail.png" alt="Clarifications" />'))
     head = ''
-    for a, b, c in data:
-        head += '<a id="'+a+'" href="'+b+'" onclick="ajax_load(this); return false"'
+    for a, b, c, d in data:
+        head += '<a id="'+a+'" class="'+b+'" href="'+c+'" onclick="ajax_load(this); return false"'
         if a == page:
             head += ' class=selected'
-        head += '>'+c+'</a>'
+        head += '>'+d+'</a>'
     head += '</td><td align=right>'
-    for a, b, c in data2:
-        head += '<a id="'+a+'" href="'+b+'" onclick="ajax_load(this); return false"'
+    for a, b, c, d in data2:
+        head += '<a id="'+a+'" class="'+b+'" href="'+c+'" onclick="ajax_load(this); return false"'
         if a == page:
             head += ' class=selected'
-        head += '>'+c+'</a>'
+        head += '>'+d+'</a>'
     head += ''
     if page.startswith('task'):
         curr_task = repr(tl[int(page[4:])])
