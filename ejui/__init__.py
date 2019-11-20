@@ -174,7 +174,7 @@ def format_scoreboard(aug=lambda y, x: x):
     contestant_task = pkgutil.get_data('ejui', 'contestant_task.html').decode('utf-8')
     contestants = []
     for index, (nickname, scores) in enumerate(data):
-        cur_tasks = ''.join('<td></td>' if i == None else contestant_task.format(kind=(('ok' if i[1] >= 0 else 'fail') if i[1] != None else 'unknown'), score=sb_format_single(*i)) for i in scores)
+        cur_tasks = ''.join('<td></td>' if i == None else contestant_task.format(kind=(('ok' if i['attempts'] >= 0 else 'fail') if 'attempts' in i else 'unknown'), score=sb_format_single(i)) for i in scores)
         contestants.append(contestant.format(index=index+1, nickname=nickname, tasks=cur_tasks))
     return aug(False, pkgutil.get_data('ejui', 'scoreboard.html').decode('utf-8').format(tasks=tasks, contestants=''.join(contestants)))
 
