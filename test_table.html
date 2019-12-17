@@ -1,0 +1,7 @@
+<script src="ejui/table.js"></script>
+<script>
+x = new AnimatedTable([{id: "test", name: "Test column"}, {id: "test2", name: "Another test column"}]);
+document.documentElement.appendChild(x.theTable);
+x.theTable.border = 1;
+x.updateRow({id: 1, test: "Test data #1", test2: "Test data #2"});
+</script>
