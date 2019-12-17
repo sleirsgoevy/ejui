@@ -1,5 +1,14 @@
 <script src="ejui/table.js"></script>
 <script>
+/* AnimatedTable public API
+
+new AnimatedTable(column_list);
+AnimatedTable.prototype.updateRow(rowObject);
+AnimatedTable.prototype.removeRow(rowObject);
+
+column_list must be an array of objects with string fields "id" and "name"
+rowObject must be an object with an integral "id" field (unique row ID) and string fields corresponding to some of the columns
+A single row must always be referenced by the same rowObject, even if it is deleted and recreated, unless a user-specified rowObject._onremove callback has been called. */
 x = new AnimatedTable([{id: "test", name: "Test column"}, {id: "test2", name: "Another test column"}]);
 document.documentElement.appendChild(x.theTable);
 x.theTable.border = 1;

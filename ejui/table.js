@@ -168,7 +168,8 @@ AnimatedTable.prototype.animate = function()
             this.rows[i]._opacity = (this.rows[i]._toremove?animateRemove:animateInsert)(this.rows[i]._opacity);
             if(this.rows[i]._opacity === undefined && this.rows[i]._toremove)
             {
-                this.rows[i]._onremove();
+                if(this.rows[i]._onremove)
+                    this.rows[i]._onremove();
                 this.rows[i]._tr.parentNode.removeChild(this.rows[i]._tr);
                 this.rows.splice(i--, 1);
             }
