@@ -92,7 +92,7 @@ AnimatedTable.prototype.insertRow = function(r)
     r._tr = document.createElement('tr');
     for(var j = 0; j < this.cols.length; j++)
         if(this.cols[j]._refcount > 0 || this.cols[j]._opacity > 0)
-            r.appendChild(document.createElement('tr'));
+            r._tr.appendChild(document.createElement('tr'));
     var tbody = this.theTH.parentNode;
     i++;
     if(i == tbody.childNodes.length)
@@ -106,9 +106,9 @@ AnimatedTable.prototype.insertRow = function(r)
 
 AnimatedTable.prototype.updateRow = function(r)
 {
+    r._toremove = false;
     if(!r._tr)
         this.insertRow(r);
-    r._toremove = false;
     for(var i = 0; i < this.cols.length; i++)
         if(this.cols[i].id in r)
             this.increfColumn(this.cols[i].id, r.id);
@@ -132,6 +132,9 @@ AnimatedTable.prototype.updateRow = function(r)
 
 AnimatedTable.prototype.removeRow = function(r)
 {
+    for(var i = 0; i < this.cols.length; i++)
+        if(this.cols[i].id in r)
+            this.decrefColumn(this.cols[i].id, r.id);
     r._toremove = true;
     if(r._opacity === undefined)
         r._opacity = 1;
@@ -148,7 +151,7 @@ AnimatedTable.prototype.animate = function()
             for(var j = 0; j < this.rows[i]._tr.childNodes.length; j++)
                 this.rows[i]._tr.childNodes[j].style.opacity = this.rows[i]._opacity;
     var idx = 0;
-    for(var i = 0; i < this.cols[i].length; i++)
+    for(var i = 0; i < this.cols.length; i++)
     {
         if(this.cols[i]._opacity !== undefined)
         {
@@ -161,6 +164,8 @@ AnimatedTable.prototype.animate = function()
                 this.rows[j]._tr.childNodes[idx].style.opacity = op;
             }
         }
+        if(this.cols[i]._refcount > 0 || this.cols[i]._opacity !== undefined)
+            idx++;
     }
     for(var i = 0; i < this.rows.length; i++) //SQUARE
         if(this.rows[i]._opacity !== undefined)
@@ -171,9 +176,10 @@ AnimatedTable.prototype.animate = function()
                 if(this.rows[i]._onremove)
                     this.rows[i]._onremove();
                 this.rows[i]._tr.parentNode.removeChild(this.rows[i]._tr);
+                delete this.rows[i]._tr;
                 this.rows.splice(i--, 1);
             }
-            if(this.rows[i]._opacity !== undefined)
+            else if(this.rows[i]._opacity !== undefined)
                 dirty = true;
         }
     for(var i = 0; i < this.cols.length; i++) //SQUARE

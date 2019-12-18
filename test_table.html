@@ -12,5 +12,7 @@ A single row must always be referenced by the same rowObject, even if it is dele
 x = new AnimatedTable([{id: "test", name: "Test column"}, {id: "test2", name: "Another test column"}]);
 document.documentElement.appendChild(x.theTable);
 x.theTable.border = 1;
-x.updateRow({id: 1, test: "Test data #1", test2: "Test data #2"});
+fuckingrow = {id: 1, test: "Test data #1", test2: "Test data #2"};
 </script>
+<button onclick="x.updateRow(fuckingrow);">Insert</button>
+<button onclick="x.removeRow(fuckingrow);">Remove</button>
