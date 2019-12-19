@@ -44,8 +44,10 @@ def logout_png(icon):
 
 @application.post('/')
 def do_login():
-    login = request.forms.get('login', default=None).encode('latin-1').decode('utf-8', 'replace')
-    pass_ = request.forms.get('pass', default=None).encode('latin-1').decode('utf-8', 'replace')
+    login = request.forms.get('login', default=None)
+    if login != None: login = login.encode('latin-1').decode('utf-8', 'replace')
+    pass_ = request.forms.get('pass', default=None)
+    if pass_ != None: pass_ = pass_.encode('latin-1').decode('utf-8', 'replace')
 #   if login == None or pass_ == None:
 #       return redirect('/')
     message = None
