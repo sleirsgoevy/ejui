@@ -39,6 +39,7 @@ function Submission(tbl, id, status, score)
 {
     this.tbl = tbl;
     this.id = id;
+    this.s_id = ''+id;
     this.status = status;
     this.score = score;
     this.tbl.submById[id] = this;
@@ -99,6 +100,7 @@ Submission.prototype.poll = function()
             self.poll();
             return;
         }
+        submPreload[self.id] = data;
         self.update(data.status, data.score);
         self.polling = false;
         self.maybe_poll();
@@ -115,6 +117,8 @@ function SubmissionTable(task_id, hlevel)
 {
     this.task_id = task_id;
     this.tbl = new AnimatedTable([{id: 's_id', name: 'ID'}, {id: 'status', name: 'Status'}, {id: 'score', name: 'Score'}, {id: 'protocol_link', name: 'Protocol'}]);
+    this.tbl.theTable.setAttribute('cellspacing', '0');
+    this.tbl.theTable.border = 1;
     this.theTable = document.createElement('span');
     this.theTable.appendChild(document.createElement('h'+(task_id===undefined?'1':'2')));
     this.theTable.childNodes[0].appendChild(document.createTextNode('Submissions'));
