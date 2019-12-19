@@ -44,7 +44,6 @@ function Submission(tbl, id, status, score)
     this.score = score;
     this.tbl.submById[id] = this;
     this.polling = false;
-    this.maybe_poll();
 }
 
 Submission.prototype._onremove = function()
@@ -81,8 +80,8 @@ Submission.prototype.poll = function()
     if(this.id in submPreload)
     {
         this.update(submPreload[this.id].status, submPreload[this.id].score);
-        delete submPreload[this.id];
-        return;
+        if(!this.still_running()) // otherwise we'd have stale status in submPreload
+            return;
     }
     var self = this;
     var xhr = new XMLHttpRequest();
@@ -163,13 +162,17 @@ SubmissionTable.prototype.refresh = function(subms)
             ans = true;
             subm = new Submission(this, subms[0][i], 'Polling...', null);
         }
+        if(subm._toremove)
+            ans = true;
         subm._insertBefore = prev;
         prev = subm;
         this.tbl.updateRow(subm);
+        subm.maybe_poll();
     }
     for(var i = 0; i < this.tbl.rows.length; i++)
         if(!ids[this.tbl.rows[i].id])
             this.tbl.removeRow(this.tbl.rows[i]);
+    return ans;
 }
 
 var subms = [];
@@ -240,10 +243,9 @@ function submitSolution()
 }
 
 var origPage = document.location.pathname;
-var currentTask = null;
-
-if(document.location.pathname.substr(0, 6) == '/task/')
-    currentTask = document.location.pathname.substr(6);
+var currentTask = document.getElementById('task_name');
+if(currentTask !== null)
+    currentTask = currentTask.childNodes[0].data;
 
 function initSubmissionTable()
 {
