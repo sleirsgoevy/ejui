@@ -66,6 +66,7 @@ AnimatedTable.prototype.increfColumn = function(q, skip_row)
         throw new ReferenceError("wtf?");
     var i;
     for(i = 0; this.cols[i].id != q; i++); //SQUARE
+//  console.log("incref", q, this.cols[i]._refcount);
     if(!(this.cols[i]._refcount++) && this.cols[i]._opacity === undefined)
         this.insertColumn(q, skip_row);
 }
@@ -76,6 +77,7 @@ AnimatedTable.prototype.decrefColumn = function(q)
         throw new ReferenceError("wtf?");
     var i;
     for(i = 0; this.cols[i].id != q; i++); //SQUARE
+//  console.log("decref", q, this.cols[i]._refcount);
     if(!--this.cols[i]._refcount)
     {
         this.cols[i]._opacity = 1;
@@ -111,16 +113,21 @@ AnimatedTable.prototype.updateRow = function(r)
     if(!r._tr)
         this.insertRow(r);
     for(var i = 0; i < this.cols.length; i++)
-        if(this.cols[i].id in r)
+        if(this.cols[i].id in r && r[this.cols[i].id] !== null && r[this.cols[i].id] !== undefined)
             this.increfColumn(this.cols[i].id, r);
     var idx = 0;
     if(!old_toremove)
     {
+//      console.log("update decref");
+//      console.log(r._tr.innerHTML);
         for(var i = 0; i < this.cols.length; i++)
             if(this.cols[i]._refcount > 0 || this.cols[i]._opacity !== undefined)
                 if(r._tr.childNodes[idx++].childNodes.length)
                     this.decrefColumn(this.cols[i].id);
+//      console.log("update decref end");
     }
+    else
+//      console.log("reinsert");
     idx = 0;
     for(var i = 0; i < this.cols.length; i++)
         if(this.cols[i]._refcount > 0 || this.cols[i]._opacity !== undefined)
@@ -139,7 +146,7 @@ AnimatedTable.prototype.removeRow = function(r)
     if(r._toremove)
         return;
     for(var i = 0; i < this.cols.length; i++)
-        if(this.cols[i].id in r)
+        if(this.cols[i].id in r && r[this.cols[i].id] !== null && r[this.cols[i].id] !== undefined)
             this.decrefColumn(this.cols[i].id, r.id);
     r._toremove = true;
     if(r._opacity === undefined)
