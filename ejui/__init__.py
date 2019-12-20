@@ -1,7 +1,12 @@
 import brutejudge.http as bj, os, sys, socket, html, json, pkgutil, bottle
 from brutejudge.error import BruteError
 from brutejudge.commands.scoreboard import format_single as sb_format_single
+from brutejudge.commands.googlelogin import get_auth_token as goauth_get_auth_token
 from bottle import abort, request, response, redirect, run, static_file
+from urllib.parse import urlencode
+
+GOAUTH_CLIENT_ID = '894979903815-c44atlfg22sp08rc1ifnfod0lej4jr0j.apps.googleusercontent.com'
+GOAUTH_CLIENT_SECRET = 'Oe8J0rddJ1r70R5Jj_3_d018'
 
 application = bottle.Bottle()
 
@@ -15,6 +20,10 @@ def get_session():
 def main_page():
     if get_session() == None:
         login_type = bj.login_type(tgt_addr)
+        goauth = [i for i in login_type if i.startswith('goauth:')]
+        if goauth:
+            assert len(goauth) == 1
+            return redirect('https://accounts.google.com/o/oauth2/auth?'+urlencode({'redirect_uri': goauth_get_redirect_uri(), 'scope': goauth[0][7:], 'response_type': 'code', 'client_id': GOAUTH_CLIENT_ID}))
         if not login_type: return do_login()
         login_page = pkgutil.get_data('ejui', 'login.html').decode('utf-8')
         login_field = pkgutil.get_data('ejui', 'login_field.html').decode('utf-8')
@@ -43,15 +52,15 @@ def logout_png(icon):
     except OSError: error(404)
 
 @application.post('/')
-def do_login():
-    login = request.forms.get('login', default=None)
-    if login != None: login = login.encode('latin-1').decode('utf-8', 'replace')
-    pass_ = request.forms.get('pass', default=None)
-    if pass_ != None: pass_ = pass_.encode('latin-1').decode('utf-8', 'replace')
-#   if login == None or pass_ == None:
-#       return redirect('/')
+def do_login(get_token=None, *args):
+    if get_token == None:
+        login = request.forms.get('login', default=None)
+        if login != None: login = login.encode('latin-1').decode('utf-8', 'replace')
+        pass_ = request.forms.get('pass', default=None)
+        if pass_ != None: pass_ = pass_.encode('latin-1').decode('utf-8', 'replace')
+    else: login = pass_ = None
     message = None
-    try: url, cookie = bj.login(tgt_addr, login, pass_)
+    try: url, cookie = bj.login(tgt_addr, login, pass_, **({'token': get_token(*args)} if get_token != None else {}))
     except (BruteError, socket.error) as e:
         message = str(e)
     except Exception:
@@ -63,6 +72,16 @@ def do_login():
     sessions[session_id] = (url, cookie)
     response.set_cookie('credentials', session_id)
     return redirect('/')
+
+def goauth_get_redirect_uri():
+    return request.urlparts[0]+'://'+request.urlparts[1]+'/goauth'
+
+@application.get('/goauth')
+def goauth_redirect():
+    login_code = request.query.get('code')
+    redirect_uri = goauth_get_redirect_uri()
+    print(login_code, redirect_uri)
+    return do_login(goauth_get_auth_token, login_code, redirect_uri, GOAUTH_CLIENT_ID, GOAUTH_CLIENT_SECRET)
 
 def force_session():
     s = get_session()
