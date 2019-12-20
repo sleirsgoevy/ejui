@@ -343,7 +343,7 @@ def format_tests(id):
     t = pkgutil.get_data('ejui', 'test.html').decode('utf-8')
     for i, (j, k) in enumerate(zip(a, b)):
         data += t.format(id=i+1, status=j, time=k)
-        return (pkgutil.get_data('ejui', 'tests.html').decode('utf-8').format(data=data), a)
+    return (pkgutil.get_data('ejui', 'tests.html').decode('utf-8').format(data=data), a)
 
 import wsgiref.simple_server, socketserver
 
