@@ -126,7 +126,7 @@ AnimatedTable.prototype.updateRow = function(r)
                     this.decrefColumn(this.cols[i].id);
 //      console.log("update decref end");
     }
-    else
+//  else
 //      console.log("reinsert");
     idx = 0;
     for(var i = 0; i < this.cols.length; i++)
