@@ -305,9 +305,9 @@ def format_page(page, text, tl=None, subms=None, clars=None):
     if clars or page == 'clars': data2.insert(3, ('clars', 'toolbar_icon', '/clars', '<img src="/mail.png" alt="Clarifications" />'))
     head = ''
     for a, b, c, d in data:
-        head += '<a id="'+a+'" class="'+b+'" href="'+c+'" onclick="ajax_load(this); return false"'
         if a == page:
-            head += ' class=selected'
+            b += ' selected'
+        head += '<a id="'+a+'" class="'+b+'" href="'+c+'" onclick="ajax_load(this); return false"'
         head += '>'+d+'</a>'
     head += '</td><td align=right>'
     for a, b, c, d in data2:
