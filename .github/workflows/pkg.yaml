@@ -8,5 +8,5 @@ jobs:
     steps:
       - uses: actions/checkout@v1
       - run: docker build . -t docker.pkg.github.com/sleirsgoevy/ejui/ejui:${GITHUB_REF##*/}
-      - run: $ docker login -u sleirgoevy -p ${{ secrets.GITHUB_TOKEN }} docker.pkg.github.com
+      - run: docker login -u sleirgoevy -p ${{ secrets.GITHUB_TOKEN }} docker.pkg.github.com
       - run: docker push docker.pkg.github.com/sleirsgoevy/ejui/ejui:${GITHUB_REF##*/}
