@@ -30,13 +30,14 @@ body
 #header span > a, #header td > a
 {
     margin: 0;
-    padding: 5px;
+    padding: 10px;
 }
 
 button, input[type=submit]
 {
     background: red;
     border: none;
+    border-radius: 10px;
 }
 
 .toolbar_icon
