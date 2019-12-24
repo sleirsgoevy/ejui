@@ -1,0 +1,11 @@
+name: "Publish docker image"
+
+on: push
+
+jobs:
+  pkg-upload:
+    runs-on: "ubuntu-latest"
+    steps:
+      - uses: actions/checkout@v1
+      - run: docker build . -t docker.pkg.github.com/sleirsgoevy/ejui/ejui:${GITHUB_REF##*/}
+      - run: docker push docker.pkg.github.com/sleirsgoevy/ejui/ejui:${GITHUB_REF##*/}
