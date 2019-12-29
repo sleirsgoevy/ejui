@@ -40,6 +40,11 @@ def style_css():
     response.set_header('Content-Type', 'text/css; charset=utf-8')
     return pkgutil.get_data('ejui', 'style.css')
 
+@application.route('/avltree.js')
+def app_js():
+    response.set_header('Content-Type', 'application/javascript; charset=utf-8')
+    return pkgutil.get_data('ejui', 'avltree.js')
+
 @application.route('/table.js')
 def app_js():
     response.set_header('Content-Type', 'application/javascript; charset=utf-8')

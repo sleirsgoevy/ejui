@@ -35,20 +35,21 @@ function select_item(id)
     document.getElementById(id).className = 'selected';
 }
 
-function Submission(tbl, id, status, score)
+function Submission(tbl, id, task, status, score)
 {
     this.tbl = tbl;
     this.id = id;
+    this.task = task;
     this.s_id = ''+id;
     this.status = status;
     this.score = score;
-    this.tbl.submById[id] = this;
+    this.tbl.submById.set(id, this);
     this.polling = false;
 }
 
 Submission.prototype._onremove = function()
 {
-    delete this.tbl.submById[this.id];
+    this.tbl.submById.del(this.id);
 }
 
 Submission.prototype.update = function(status, score)
@@ -115,7 +116,7 @@ Submission.prototype.poll = function()
 function SubmissionTable(task_id, hlevel)
 {
     this.task_id = task_id;
-    this.tbl = new AnimatedTable([{id: 's_id', name: 'ID'}, {id: 'status', name: 'Status'}, {id: 'score', name: 'Score'}, {id: 'protocol_link', name: 'Protocol'}]);
+    this.tbl = new AnimatedTable([{id: 's_id', name: 'ID'}, {id: 'task', name: 'Task'}, {id: 'status', name: 'Status'}, {id: 'score', name: 'Score'}, {id: 'protocol_link', name: 'Protocol'}]);
     this.tbl.theTable.setAttribute('cellspacing', '0');
     this.tbl.theTable.border = 1;
     this.theTable = document.createElement('span');
@@ -124,7 +125,7 @@ function SubmissionTable(task_id, hlevel)
     this.theTable.appendChild(this.tbl.theTable);
     this.theSpan = document.createElement('p');
     this.theSpan.appendChild(document.createTextNode('You have no submissions.'));
-    this.submById = {};
+    this.submById = new AVLMap();
     this.refresh(subms);
     this.tbl.stopAnimation();
 }
@@ -148,7 +149,6 @@ SubmissionTable.prototype.render = function(node)
 
 SubmissionTable.prototype.refresh = function(subms)
 {
-    var prev = undefined;
     var ids = {};
     var ans = false;
     for(var i = subms[0].length - 1; i >= 0; i--)
@@ -156,16 +156,17 @@ SubmissionTable.prototype.refresh = function(subms)
         if(subms[1][i] !== this.task_id && this.task_id !== null && this.task_id !== undefined)
             continue;
         ids[subms[0][i]] = true;
-        var subm = this.submById[subms[0][i]];
-        if(subm === undefined)
+        var lb = this.submById.lower_bound(subms[0][i]);
+        var insert_at = (lb===null?0:this.submById.length()-this.submById.index(lb.key));
+        var subm = this.submById.get(subms[0][i]);
+        if(subm === null)
         {
             ans = true;
-            subm = new Submission(this, subms[0][i], 'Polling...', null);
+            subm = new Submission(this, subms[0][i], subms[1][i], 'Polling...', null);
         }
         if(subm._toremove)
             ans = true;
-        subm._insertBefore = prev;
-        prev = subm;
+        subm._insertAt = insert_at;
         this.tbl.updateRow(subm);
         subm.maybe_poll();
     }
@@ -243,12 +244,16 @@ function submitSolution()
 }
 
 var origPage = document.location.pathname;
-var currentTask = document.getElementById('task_name');
-if(currentTask !== null)
-    currentTask = currentTask.childNodes[0].data;
+var currentTask = undefined;
 
 function initSubmissionTable()
 {
+    if(currentTask === undefined)
+    {
+        currentTask = document.getElementById('task_name');
+        if(currentTask !== null)
+            currentTask = currentTask.childNodes[0].data;
+    }
     var subms = document.getElementById('submissions');
     if(subms === null)
         return;
@@ -265,7 +270,7 @@ function doAjaxLoad(page)
         document.location.replace(page);
         return;
     }
-    document.getElementById('body').innerHTML = '';
+//  document.getElementById('body').innerHTML = '';
     if(subm_table !== null)
         subm_table = null;
     currentTask = null;
@@ -369,6 +374,7 @@ function doAjaxLoad(page)
         setCover(false);
         select_item('subms');
         var body = document.getElementById('body');
+        body.innerHTML = '';
         var span = document.createElement('span');
         span.id = 'submissions';
         submTable = new SubmissionTable();
