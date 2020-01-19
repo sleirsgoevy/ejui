@@ -132,7 +132,7 @@ function SubmissionTable(task_id, hlevel)
 
 SubmissionTable.prototype.getNode = function()
 {
-    return (this.tbl.rows.length?this.theTable:this.theSpan);
+    return (this.tbl.rows.length()?this.theTable:this.theSpan);
 }
 
 SubmissionTable.prototype.render = function(node)
@@ -170,9 +170,9 @@ SubmissionTable.prototype.refresh = function(subms)
         this.tbl.updateRow(subm);
         subm.maybe_poll();
     }
-    for(var i = 0; i < this.tbl.rows.length; i++)
-        if(!ids[this.tbl.rows[i].id])
-            this.tbl.removeRow(this.tbl.rows[i]);
+    for(var i = 0; i < this.tbl.rows.length(); i++) //TODO: proper iterator
+        if(!ids[this.tbl.rows.get(i).id])
+            this.tbl.removeRow(this.tbl.rows.get(i));
     return ans;
 }
 

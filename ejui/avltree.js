@@ -4,12 +4,17 @@ function AVLTreeNode(k, v)
     this.value = v;
     this.left = null;
     this.right = null;
+    this.parent = null;
     this.height = 1;
     this.count = 1;
 }
 
 AVLTreeNode.prototype.update = function()
 {
+    if(this.left)
+        this.left.parent = this;
+    if(this.right)
+        this.right.parent = this;
     this.height = 0;
     if(this.left && this.left.height > this.height)
         this.height = this.left.height;
@@ -26,8 +31,10 @@ AVLTreeNode.prototype.update = function()
 AVLTreeNode.prototype.rotate = function(k1, k2)
 {
     var ans = this[k1];
+    ans.parent = this.parent;
     var tmp = ans[k2];
     ans[k2] = this;
+    ans[k2]
     this[k1] = tmp;
     this.update();
     this.balance();
@@ -87,11 +94,17 @@ AVLTreeNode.prototype.pop_right = function()
 
 AVLTreeNode.prototype.pop_root = function()
 {
+    var p = this.parent;
     if(!this.left)
+    {
+        if(this.right)
+            this.right.parent = p;
         return this.right;
+    }
     var q = this.left.pop_right();
     q.right = this.right;
     q.update();
+    q.parent = p;
     return q.balance();
 }
 
@@ -132,26 +145,26 @@ AVLTreeNode.prototype.index_by_key = function(k)
     return -1;
 }
 
-AVLTreeNode.prototype.insert_by_key = function(node)
+AVLTreeNode.prototype.insert_by_key = function(node, pnode)
 {
     if(node.key == this.key)
     {
         this.value = node.value;
-        return this;
+        return pnode.node = this;
     }
     else if(node.key < this.key)
     {
         if(this.left)
-            this.left = this.left.insert_by_key(node);
+            this.left = this.left.insert_by_key(node, pnode);
         else
-            this.left = node;
+            this.left = pnode.node = node;
     }
     else
     {
         if(this.right)
-            this.right = this.right.insert_by_key(node);
+            this.right = this.right.insert_by_key(node, pnode);
         else
-            this.right = node;
+            this.right = pnode.node = node;
     }
     this.update();
     return this.balance();
@@ -232,6 +245,78 @@ AVLTreeNode.prototype.remove_by_idx = function(idx)
     return this.balance();
 }
 
+AVLTreeNode.prototype.remove_self = function()
+{
+    var parent = this.parent;
+    var old = this;
+    var now = this.pop_root();
+    while(parent !== null)
+    {
+        var parent2 = parent.parent;
+        if(parent.left === old)
+            parent.left = now;
+        if(parent.right === old)
+            parent.right = now;
+        parent.update();
+        old = parent;
+        now = parent.balance();
+        parent = parent2;
+    }
+    return now;
+}
+
+function AVLIterator(tr, node)
+{
+    this.tree = tr;
+    this.node = node;
+}
+
+AVLIterator.prototype._next = function(k1, k2)
+{
+    if(this.node[k1])
+    {
+        var q = this.node[k1];
+        while(q[k2])
+            q = q[k2];
+        this.node = q;
+        return this;
+    }
+    var prev = this.node;
+    var cur = prev.parent;
+    while(cur && cur[k2] !== prev)
+    {
+        prev = cur;
+        cur = cur.parent;
+    }
+    if(cur)
+    {
+        this.node = cur;
+        return this;
+    }
+    return null;
+}
+
+AVLIterator.prototype.prev = function()
+{
+    return this._next('left', 'right');
+}
+
+AVLIterator.prototype.next = function()
+{
+    return this._next('right', 'left');
+}
+
+AVLIterator.prototype.pop = function()
+{
+    this.tree.root = this.node.remove_self();
+    this.node = null;
+}
+
+AVLIterator.prototype.get = function()
+{
+    return {'key': this.node.key, 'value': this.node.value};
+}
+
 function AVLMap()
 {
     this.root = null;
@@ -261,11 +346,13 @@ AVLMap.prototype.lower_bound = function(k)
 
 AVLMap.prototype.set = function(k, v)
 {
+    var pnode = {};
     var node = new AVLTreeNode(k, v);
     if(this.root)
-        this.root = this.root.insert_by_key(node);
+        this.root = this.root.insert_by_key(node, pnode);
     else
-        this.root = node;
+        this.root = pnode.node = node;
+    return new AVLIterator(this, pnode.node);
 }
 
 AVLMap.prototype.del = function(k)
@@ -292,6 +379,28 @@ AVLMap.prototype.get_by_index = function(idx)
     return null;
 }
 
+AVLMap.prototype.get_iter = function(k)
+{
+    if(this.root)
+    {
+        var node = this.root.find_by_key(k, lb);
+        if(node)
+            return new AVLIterator(this, node);
+    }
+    return null;
+}
+
+AVLMap.prototype.get_iter_by_index = function(idx)
+{
+    if(this.root)
+    {
+        var node = this.root.find_by_idx(idx);
+        if(node)
+            return new AVLIterator(this, node);
+    }
+    return null;
+}
+
 AVLMap.prototype.length = function()
 {
     if(!this.root)
@@ -311,6 +420,13 @@ AVLRope.prototype.get = function(idx)
     return null;
 }
 
+AVLRope.prototype.get_iter = function(idx)
+{
+    if(this.root)
+        return new AVLIterator(this, this.root.find_by_idx(idx));
+    return null;
+}
+
 AVLRope.prototype.insert = function(idx, val)
 {
     var node = new AVLTreeNode(null, val);
@@ -318,6 +434,7 @@ AVLRope.prototype.insert = function(idx, val)
         this.root = this.root.insert_by_idx(idx, node);
     else
         this.root = node;
+    return new AVLIterator(this, node);
 }
 
 AVLRope.prototype.del = function(idx)

@@ -10,8 +10,10 @@ function AnimatedTable(cols)
     this.theTable = document.createElement('table');
     this.theTH = document.createElement('tr');
     this.theTable.appendChild(this.theTH);
-    this.rows = [];
+    this.rows = new AVLRope();
     this.animating = false;
+    this.row_id_alloc = 0;
+    this.animated_rows = new AVLMap();
 }
 
 AnimatedTable.prototype.insertColumn = function(q, skip_row)
@@ -28,15 +30,15 @@ AnimatedTable.prototype.insertColumn = function(q, skip_row)
         this.theTH.appendChild(thNode);
     else
         this.theTH.insertBefore(thNode, this.theTH.childNodes[idx]);
-    for(var j = 0; j < this.rows.length; j++)
+    for(var j = 0; j < this.rows.length(); j++) // TODO: proper iterator
     {
         var text = null;
-        if(this.rows[j][q] !== undefined && this.rows[j] !== skip_row)
-            text = this.rows[j][q];
+        if(this.rows.get(j)[q] !== undefined && this.rows.get(j) !== skip_row)
+            text = this.rows.get(j)[q];
         var cell = document.createElement('td');
         if(text !== null)
             cell.appendChild(document.createTextNode(text));
-        var row = this.rows[j]._tr;
+        var row = this.rows.get(j)._tr;
         if(idx == row.childNodes.length)
             row.appendChild(cell);
         else
@@ -56,8 +58,8 @@ AnimatedTable.prototype.removeColumn = function(q)
         if(this.cols[i]._refcount > 0 || this.cols[i]._opacity !== undefined)
             idx++;
     this.theTH.removeChild(this.theTH.childNodes[idx]);
-    for(var j = 0; j < this.rows.length; j++)
-        this.rows[j]._tr.removeChild(this.rows[j]._tr.childNodes[idx]);
+    for(var j = 0; j < this.rows.length(); j++) // TODO: proper iterator
+        this.rows.get(j)._tr.removeChild(this.rows.get(j)._tr.childNodes[idx]);
 }
 
 AnimatedTable.prototype.increfColumn = function(q, skip_row)
@@ -88,9 +90,11 @@ AnimatedTable.prototype.decrefColumn = function(q)
 
 AnimatedTable.prototype.insertRow = function(r)
 {
-    var i;
-    for(i = 0; i < this.rows.length && this.rows[i] != r._insertBefore; i++); //SQUARE
-    this.rows.splice(i, 0, r);
+    if(!r._id)
+        r._id = ++this.row_id_alloc;
+    var i = r._insertAt;
+    //for(i = 0; i < this.rows.length && this.rows[i] != r._insertBefore; i++); //SQUARE
+    r._iter = this.rows.insert(i, r);
     r._tr = document.createElement('tr');
     for(var j = 0; j < this.cols.length; j++)
         if(this.cols[j]._refcount > 0 || this.cols[j]._opacity > 0)
@@ -102,12 +106,15 @@ AnimatedTable.prototype.insertRow = function(r)
     else
         tbody.insertBefore(r._tr, tbody.childNodes[i]);
     r._opacity = 0;
+    this.animated_rows.set(r._id, r);
     if(!this.animating)
         this.animate();
 }
 
 AnimatedTable.prototype.updateRow = function(r)
 {
+    if(!r._id)
+        r._id = ++this.row_id_alloc;
     var old_toremove = r._toremove;
     r._toremove = false;
     if(!r._tr)
@@ -143,6 +150,8 @@ AnimatedTable.prototype.updateRow = function(r)
 
 AnimatedTable.prototype.removeRow = function(r)
 {
+    if(!r._id)
+        r._id = ++this.row_id_alloc;
     if(r._toremove)
         return;
     for(var i = 0; i < this.cols.length; i++)
@@ -151,6 +160,7 @@ AnimatedTable.prototype.removeRow = function(r)
     r._toremove = true;
     if(r._opacity === undefined)
         r._opacity = 1;
+    this.animated_rows.set(r._id, r);
     if(!this.animating)
         this.animate();
 }
@@ -159,42 +169,56 @@ AnimatedTable.prototype.animate = function()
 {
     this.animating = true;
     var dirty = false;
-    for(var i = 0; i < this.rows.length; i++) //SQUARE
-        if(this.rows[i]._opacity !== undefined)
-            for(var j = 0; j < this.rows[i]._tr.childNodes.length; j++)
-                this.rows[i]._tr.childNodes[j].style.opacity = this.rows[i]._opacity;
+    for(var i = 0; i < this.animated_rows.length(); i++) //TODO: proper iterator
+        if(this.animated_rows.get_by_index(i).value._opacity !== undefined)
+            for(var j = 0; j < this.animated_rows.get_by_index(i).value._tr.childNodes.length; j++)
+                this.animated_rows.get_by_index(i).value._tr.childNodes[j].style.opacity = this.animated_rows.get_by_index(i).value._opacity;
+        else
+            throw "wtf???";
     var idx = 0;
     for(var i = 0; i < this.cols.length; i++)
     {
         if(this.cols[i]._opacity !== undefined)
         {
             this.theTH.childNodes[idx].style.opacity = this.cols[i]._opacity;
-            for(var j = 0; j < this.rows.length; j++)
+            for(var j = 0; j < this.rows.length(); j++)
             {
                 var op = this.cols[i]._opacity;
-                if(this.rows[j]._opacity !== undefined && this.rows[j]._opacity < op)
-                    op = this.rows[j]._opacity;
-                this.rows[j]._tr.childNodes[idx].style.opacity = op;
+                if(this.rows.get(j)._opacity !== undefined && this.rows.get(j)._opacity < op)
+                    op = this.rows.get(j)._opacity;
+                this.rows.get(j)._tr.childNodes[idx].style.opacity = op;
             }
         }
         if(this.cols[i]._refcount > 0 || this.cols[i]._opacity !== undefined)
             idx++;
     }
-    for(var i = 0; i < this.rows.length; i++) //SQUARE
-        if(this.rows[i]._opacity !== undefined)
+    for(var i = 0; i < this.animated_rows.length(); i++) //TODO: proper iterator
+    {
+        var r = this.animated_rows.get_by_index(i).value;
+        if(r._opacity !== undefined)
         {
-            this.rows[i]._opacity = (this.rows[i]._toremove?animateRemove:animateInsert)(this.rows[i]._opacity);
-            if(this.rows[i]._opacity === undefined && this.rows[i]._toremove)
+            r._opacity = (r._toremove?animateRemove:animateInsert)(r._opacity);
+            if(r._opacity === undefined)
             {
-                if(this.rows[i]._onremove)
-                    this.rows[i]._onremove();
-                this.rows[i]._tr.parentNode.removeChild(this.rows[i]._tr);
-                delete this.rows[i]._tr;
-                this.rows.splice(i--, 1);
+                this.animated_rows.del(r._id);
+                i--;
             }
-            else if(this.rows[i]._opacity !== undefined)
+            if(r._opacity === undefined && r._toremove)
+            {
+                if(r._onremove)
+                    r._onremove();
+                r._tr.parentNode.removeChild(r._tr);
+                delete r._tr;
+                //r.splice(i--, 1); //SQUARE
+                r._iter.pop();
+                delete r._iter;
+            }
+            else if(r._opacity !== undefined)
                 dirty = true;
         }
+        else
+            throw "wtf??";
+    }
     for(var i = 0; i < this.cols.length; i++) //SQUARE
         if(this.cols[i]._opacity !== undefined)
         {
