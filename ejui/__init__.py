@@ -1,5 +1,5 @@
 import os, sys, socket, html, json, pkgutil, bottle
-from bottle import abort, request, response, redirect, run, static_file
+from bottle import abort, error, request, response, redirect, run, static_file
 from urllib.parse import urlencode
 
 try:
@@ -150,9 +150,15 @@ def submit(task, cmpl=None):
         if file == None:
             return format_page('error', pkgutil.get_data('ejui', 'no_file.html'))
         data = file.file.read()
-    bj.submit(url, cookie, task, cmpl, data)
+    try: bj.submit(url, cookie, task, cmpl, data)
+    except BruteError as e: err = str(e)
+    else:
+        if not js:
+            return redirect('/task/%d'%task)
+        return b''
     if not js:
-        return redirect('/task/%d'%task)
+        return pkgutil.get_data('ejui', 'error.html').decode('utf-8').format(message=html.escape(err))
+    return err
 
 @application.route('/submissions')
 def submissions():
