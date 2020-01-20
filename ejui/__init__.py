@@ -1,9 +1,17 @@
-import brutejudge.http as bj, os, sys, socket, html, json, pkgutil, bottle
-from brutejudge.error import BruteError
-from brutejudge.commands.scoreboard import format_single as sb_format_single
-from brutejudge.commands.googlelogin import get_auth_token as goauth_get_auth_token
+import os, sys, socket, html, json, pkgutil, bottle
 from bottle import abort, request, response, redirect, run, static_file
 from urllib.parse import urlencode
+
+try:
+    import brutejudge.http as bj
+    from brutejudge.error import BruteError
+    from brutejudge.commands.scoreboard import format_single as sb_format_single
+    from brutejudge.commands.googlelogin import get_auth_token as goauth_get_auth_token
+except ImportError:
+    import ejcli.http as bj
+    from ejcli.error import EJError as BruteError
+    from ejcli.commands.scoreboard import format_single as sb_format_single
+    from ejcli.commands.googlelogin import get_auth_token as goauth_get_auth_token
 
 GOAUTH_CLIENT_ID = '894979903815-c44atlfg22sp08rc1ifnfod0lej4jr0j.apps.googleusercontent.com'
 GOAUTH_CLIENT_SECRET = 'Oe8J0rddJ1r70R5Jj_3_d018'
