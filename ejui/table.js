@@ -239,9 +239,9 @@ AnimatedTable.prototype.stopAnimation = function()
     for(var i = 0; i < this.cols.length; i++)
         if(this.cols[i]._opacity !== undefined)
             this.cols[i]._opacity = 1;
-    for(var i = 0; i < this.rows.length; i++)
-        if(this.rows[i]._opacity !== undefined)
-            this.rows[i]._opacity = 1;
+    for(var i = 0; i < this.animated_rows.length(); i++)
+        if(this.animated_rows.get_by_index(i).value._opacity !== undefined)
+            this.animated_rows.get_by_index(i).value._opacity = 1;
 }
 
 function animateInsert(opacity)
