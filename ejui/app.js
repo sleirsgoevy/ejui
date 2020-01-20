@@ -233,7 +233,17 @@ function submitSolution()
     }
     var xhr = new XMLHttpRequest();
     xhr.open('POST', '/submit/'+document.location.pathname.substr(6)+'/'+cmpl, true);
-    xhr.onload = checkSubmissions.bind(window, false);
+    xhr.onload = function()
+    {
+        if(this.responseText)
+            alert(this.responseText);
+        checkSubmissions.bind(window, false);
+    }
+    xhr.onerror = function()
+    {
+        if(this.responseText)
+            alert(this.responseText);
+    }
     var fr = new FileReader();
     fr.onload = function()
     {
