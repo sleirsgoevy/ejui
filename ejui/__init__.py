@@ -48,6 +48,16 @@ def style_css():
     response.set_header('Content-Type', 'text/css; charset=utf-8')
     return pkgutil.get_data('ejui', 'style.css')
 
+@application.route('/avltree.js')
+def app_js():
+    response.set_header('Content-Type', 'application/javascript; charset=utf-8')
+    return pkgutil.get_data('ejui', 'avltree.js')
+
+@application.route('/table.js')
+def app_js():
+    response.set_header('Content-Type', 'application/javascript; charset=utf-8')
+    return pkgutil.get_data('ejui', 'table.js')
+
 @application.route('/app.js')
 def app_js():
     response.set_header('Content-Type', 'application/javascript; charset=utf-8')
@@ -314,9 +324,9 @@ def format_page(page, text, tl=None, subms=None, clars=None):
     if clars or page == 'clars': data2.insert(3, ('clars', 'toolbar_icon', '/clars', '<img src="/mail.png" alt="Clarifications" />'))
     head = ''
     for a, b, c, d in data:
-        head += '<a id="'+a+'" class="'+b+'" href="'+c+'" onclick="ajax_load(this); return false"'
         if a == page:
-            head += ' class=selected'
+            b += ' selected'
+        head += '<a id="'+a+'" class="'+b+'" href="'+c+'" onclick="ajax_load(this); return false"'
         head += '>'+d+'</a>'
     head += '</td><td align=right>'
     for a, b, c, d in data2:

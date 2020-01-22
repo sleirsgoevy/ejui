@@ -1,4 +1,4 @@
-<h1>Task {name}</h1>
+<h1>Task <span id="task_name">{name}</span></h1>
 <h2>Submit a solution</h2>
 <form id="submit_form" action="/submit/{id}" method="post" enctype="multipart/form-data" onsubmit="submitSolution(); return false">
 <table>
@@ -15,6 +15,6 @@
 </tr>
 </table>
 </form>
-<span id="subm_cont">
+<span id="submissions">
 {subms}
 </span>

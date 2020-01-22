@@ -1,0 +1,288 @@
+<html>
+<head>
+<script src="ejui/avltree.js"></script>
+</head>
+<body>
+<div id="vis"></div>
+<script>
+var the_set = new AVLMap();
+
+function doGet()
+{
+    try
+    {
+        alert(JSON.stringify(the_set.get(+document.getElementById('key').value)));
+    }
+    catch(e)
+    {
+        alert(e+'\n'+e.stack);
+    }
+}
+
+function doSet()
+{
+    try
+    {
+        the_set.set(+document.getElementById('key').value, +document.getElementById('value').value);
+        alert('Value set!');
+    }
+    catch(e)
+    {
+        alert(e+'\n'+e.stack);
+    }
+}
+
+function doDel()
+{
+    try
+    {
+        the_set.del(+document.getElementById('key').value);
+        alert('Key removed!');
+    }
+    catch(e)
+    {
+        alert(e+'\n'+e.stack);
+    }
+}
+
+function doIdx()
+{
+    try
+    {
+        alert(JSON.stringify(the_set.index(+document.getElementById('key').value)));
+    }
+    catch(e)
+    {
+        alert(e+'\n'+e.stack);
+    }
+}
+
+function htmlescape(x)
+{
+    return (x+'').split('&').join('&amp;').split('<').join('&lt;').split('>').join('&gt;').split('\n').join('<br/>');
+}
+
+function validateNode(x, p)
+{
+    if(x === null)
+        return true;
+    if(x.parent !== p)
+        return false;
+    var h = 0;
+    if(x.left && x.left.height > h)
+        h = x.left.height;
+    if(x.right && x.right.height > h)
+        h = x.right.height;
+    h++;
+    if(h !== x.height)
+        return false;
+    return validateNode(x.left, x) && validateNode(x.right, x);
+}
+
+function visualiseNode(x, p)
+{
+    var notes = '';
+    if(x === null)
+        return 'null';
+    if(x.parent !== p)
+        notes += 'Parent doesn\'t match!\n';
+    var h = 0;
+    if(x.left && x.left.height > h)
+        h = x.left.height;
+    if(x.right && x.right.height > h)
+        h = x.right.height;
+    h++;
+    if(h !== x.height)
+        notes += 'Height doesn\'t match!\n';
+    if((typeof x) === 'object' && (x instanceof AVLTreeNode))
+    {
+        try
+        {
+            return '<div style="margin: 5px; border: 1px solid black;"><p align="center">'+htmlescape(
+                'key='+JSON.stringify(x.key)+
+                ', value='+JSON.stringify(x.value)+
+                ', height='+JSON.stringify(x.height)+
+                ', count='+JSON.stringify(x.count)
+            )+'</p><pre>'+notes+'</pre><table width="100%"><tr><th>left branch:</th><th>right branch:</th></tr><tr><td>'+visualiseNode(x.left, x)+'</td><td>'+visualiseNode(x.right, x)+'</td></tr></table></div>';
+        }
+        catch(e)
+        {
+            return '<div style="border: 1px solid red;">'+htmlescape('Failed to serialize:\n'+e+'\n'+e.stack);
+        }
+    }
+    else
+        return 'invalid node: '+x;
+}
+
+function doVis()
+{
+    document.getElementById('vis').innerHTML = visualiseNode(the_set.root);
+}
+
+function fuzz()
+{
+    var log = '';
+    var st = new AVLMap();
+    var lst = [];
+    try
+    {
+        main_loop:
+        for(;;)
+        {
+            var action = Math.floor(6*Math.random());
+            switch(action)
+            {
+            case 0: //insert
+                var key = Math.floor(11*Math.random())-5;
+                var value = Math.floor(11*Math.random())-5;
+                log += 'set('+key+', '+value+');\n';
+                st.set(key, value);
+                for(var i = 0; i < lst.length; i++)
+                    if(lst[i].key === key)
+                    {
+                        lst[i].value = value;
+                        continue main_loop;
+                    }
+                lst.push({key: key, value: value});
+                break;
+            case 1: //remove
+            case 6: //remove by iterator
+                var key = Math.floor(11*Math.random())-5;
+                if(action == 1)
+                {
+                    log += 'del('+key+');\n';
+                    st.del(key);
+                }
+                else
+                {
+                    log += 'get_iter('+key+').pop();\n';
+                    st.get_iter(key).pop();
+                }
+                for(var i = 0; i < lst.length; i++)
+                    if(lst[i].key === key)
+                    {
+                        lst.splice(i, 1);
+                        break;
+                    }
+                break;
+            case 2: //get
+                var key = Math.floor(11*Math.random())-5;
+                log += 'get('+key+');\n';
+                var val1 = st.get(key);
+                var val2 = null;
+                for(var i = 0; i < lst.length; i++)
+                    if(lst[i].key === key)
+                        val2 = lst[i].value;
+                if(val1 !== val2)
+                    throw "values do not match! ("+val1+" != "+val+")";
+                break;
+            case 3: //lower_bound
+                var key = Math.floor(11*Math.random())-5;
+                log += 'lower_bound('+key+');\n';
+                var val1 = st.lower_bound(key);
+                var val2 = {key: +'Infinity', value: 0};
+                for(var i = 0; i < lst.length; i++)
+                    if(lst[i].key >= key && lst[i].key < val2.key)
+                        val2 = lst[i];
+                if(val2.key == 'Infinity')
+                    val2 = null;
+                val1 = JSON.stringify(val1);
+                val2 = JSON.stringify(val2);
+                if(val1 !== val2)
+                    throw "values do not match! ("+val1+" != "+val2+")";
+                break;
+            case 4: //index
+                var key = Math.floor(11*Math.random())-5;
+                log += 'index('+key+');\n';
+                var idx1 = st.index(key);
+                var idx2 = 0;
+                var found = false;
+                for(var i = 0; i < lst.length; i++)
+                    if(lst[i].key < key)
+                        idx2++;
+                    else if(lst[i].key == key)
+                        found = true;
+                if(!found)
+                    idx2 = -1;
+                if(idx1 !== idx2)
+                    throw "indices do not match! ("+idx1+" != "+val2+")";
+                break;
+            case 5: //get_by_index
+                var idx = Math.floor(15*Math.random());
+                log += 'get_by_index('+idx+');';
+                var val1 = st.get_by_index(idx);
+                var val2 = null;
+                for(var i = 0; i < lst.length; i++)
+                {
+                    var idx2 = 0;
+                    for(var j = 0; j < lst.length; j++)
+                        if(lst[j].key < lst[i].key)
+                            idx2++;
+                    if(idx2 == idx)
+                        val2 = lst[i];
+                }
+                val1 = JSON.stringify(val1);
+                val2 = JSON.stringify(val2);
+                if(val1 !== val2)
+                    throw "values do not match! ("+val1+" != "+val2+")";
+                break;
+            default:
+                throw "unknown action!";
+            }
+            if(!validateNode(st.root, null))
+                throw "node validation failed!";
+        }
+    }
+    catch(e)
+    {
+        return '<font color=red>'+htmlescape(e+'\n'+e.stack+'\n'+log)+'</font>';
+    }
+}
+
+function doFuzz()
+{
+    document.getElementById('vis').innerHTML = 'fuzzing...';
+    var min_len = 1 / 0;
+    setInterval(function()
+    {
+        for(var i = 0; i < 100; i++)
+        {
+            var s = fuzz();
+            if(s.length < min_len)
+            {
+                document.getElementById('vis').innerHTML = s;
+                min_len = s.length;
+            }
+        }
+    }, 1);
+}
+
+var lineno = 0;
+
+function doExec()
+{
+    var l = document.getElementById('textarea').value.split('\n')[lineno++];
+    try
+    {
+        document.getElementById('execResult').innerHTML = htmlescape(JSON.stringify(eval("the_set."+l)));
+    }
+    catch(e)
+    {
+        alert(e+'\n'+e.stack);
+    }
+    doVis();
+}
+</script>
+<p><label for="key">Key: </label><input id="key" /></p>
+<p><label for="value">Value: </label><input id="value" /></p>
+<button onclick="doGet()">Get</button>
+<button onclick="doSet()">Set</button>
+<button onclick="doDel()">Delete</button>
+<button onclick="doIdx()">Index</button>
+<button onclick="doVis()">Visualise</button>
+<button onclick="doFuzz()">Fuzz</button>
+<p><textarea id="textarea"></textarea></p>
+<button onclick="doExec()">Step</button>
+<div id="execResult"></div>
+</body>
+</html>
