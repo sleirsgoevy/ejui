@@ -43,6 +43,9 @@ function Submission(tbl, id, task, status, score)
     this.s_id = ''+id;
     this.status = status;
     this.score = score;
+    this.protocol_link = document.createElement('a');
+    this.protocol_link.href = '/submissions/'+id;
+    this.protocol_link.appendChild(document.createTextNode('Show protocol'));
     this.tbl.submById.set(id, this);
     this.polling = false;
 }
@@ -237,7 +240,7 @@ function submitSolution()
     {
         if(this.responseText)
             alert(this.responseText);
-        checkSubmissions.bind(window, false);
+        checkSubmissions(false);
     }
     xhr.onerror = function()
     {

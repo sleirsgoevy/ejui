@@ -37,7 +37,7 @@ AnimatedTable.prototype.insertColumn = function(q, skip_row)
             text = this.rows.get(j)[q];
         var cell = document.createElement('td');
         if(text !== null)
-            cell.appendChild(document.createTextNode(text));
+            cell.appendChild(((typeof text) != 'object')?document.createTextNode(text):text);
         var row = this.rows.get(j)._tr;
         if(idx == row.childNodes.length)
             row.appendChild(cell);
@@ -144,7 +144,7 @@ AnimatedTable.prototype.updateRow = function(r)
             while(td.firstChild)
                 td.removeChild(td.firstChild);
             if(data !== null && data !== undefined)
-                td.appendChild(document.createTextNode(data));
+                td.appendChild(((typeof data) != 'object')?document.createTextNode(data):data);
         }
 }
 
