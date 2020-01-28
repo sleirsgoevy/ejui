@@ -27,12 +27,25 @@ function requestAnimation(elem, prop, prefix, start, duration, stop, suffix)
     return elem.ejuiAnimation = canceller;
 }
 
+function sinewaveAnimation(o)
+{
+    if(!this.timestamp)
+    {
+        this.timestamp = +new Date();
+        this.angle = Math.asin(2*o-1);
+    }
+    var ts2 = +new Date();
+    this.angle += (ts2 - this.timestamp)*Math.PI/1000;
+    this.timestamp = ts2;
+    return (Math.sin(this.angle)+1)/2;
+}
+
 function select_item(id)
 {
     var elems = document.getElementsByClassName('selected');
     for(var i = 0; i < elems.length; i++)
         elems[i].className = '';
-    document.getElementById(id).className = 'selected';
+    document.getElementById('toolbar_item_'+id).className = 'selected';
 }
 
 function Submission(tbl, id, task, status, score)
@@ -43,11 +56,15 @@ function Submission(tbl, id, task, status, score)
     this.s_id = ''+id;
     this.status = status;
     this.score = score;
+    this.updateBackgroundColor();
     this.protocol_link = document.createElement('a');
     this.protocol_link.href = '/submissions/'+id;
     this.protocol_link.appendChild(document.createTextNode('Show protocol'));
+    this.css_transition = 'background-color 0.25s ease-out';
+    this.css_backgroundColor = '#ffffff';
     this.tbl.submById.set(id, this);
     this.polling = false;
+    this._animation = null;
 }
 
 Submission.prototype._onremove = function()
@@ -59,8 +76,29 @@ Submission.prototype.update = function(status, score)
 {
     this.status = status;
     this.score = score;
+    this.updateBackgroundColor();
     if(!this._toremove)
         this.tbl.tbl.updateRow(this);
+}
+
+Submission.prototype.updateBackgroundColor = function()
+{
+    if(this.still_running())
+    {
+        this._animation = sinewaveAnimation;
+        this.css_backgroundColor = '#ffffff';
+    }
+    else
+    {
+        this._animation = null;
+        var score = this.score || 0;
+        if(this.status == 'OK')
+            score = 100;
+        var green = Math.floor(127*(score/100));
+        var red = 127-green;
+        var hex = "0123456789abcdef";
+        this.css_backgroundColor = '#'+hex[8+(red-red%16)/16]+hex[red%16]+hex[8+(green-green%16)/16]+hex[green%16]+'80';
+    }
 }
 
 Submission.prototype.still_running = function(s)
@@ -119,7 +157,7 @@ Submission.prototype.poll = function()
 function SubmissionTable(task_id, hlevel)
 {
     this.task_id = task_id;
-    this.tbl = new AnimatedTable([{id: 's_id', name: 'ID'}, {id: 'task', name: 'Task'}, {id: 'status', name: 'Status'}, {id: 'score', name: 'Score'}, {id: 'protocol_link', name: 'Protocol'}]);
+    this.tbl = new AnimatedTable([{id: 's_id', name: 'ID'}, {id: 'task', name: 'Task'}, {id: 'status', name: 'Status'}, {id: 'score', name: 'Score'}, {id: 'protocol_link', name: 'Protocol'}], ['backgroundColor']);
     this.tbl.theTable.setAttribute('cellspacing', '0');
     this.tbl.theTable.border = 1;
     this.theTable = document.createElement('span');

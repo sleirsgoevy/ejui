@@ -326,7 +326,7 @@ def format_page(page, text, tl=None, subms=None, clars=None):
     for a, b, c, d in data:
         if a == page:
             b += ' selected'
-        head += '<a id="'+a+'" class="'+b+'" href="'+c+'" onclick="ajax_load(this); return false"'
+        head += '<a id="toolbar_item_'+a+'" class="'+b+'" href="'+c+'" onclick="ajax_load(this); return false"'
         head += '>'+d+'</a>'
     head += '</td><td align=right>'
     for a, b, c, d in data2:

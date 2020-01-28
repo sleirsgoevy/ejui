@@ -130,9 +130,14 @@ button, input[type=submit]
     padding: 5px;
 }
 
-#scoreboard tr > :nth-child(n+2)
+#submissions table, #submissions table tr > *
 {
-    border-left: 1px solid black;
+    border: 1px solid #888;
+}
+
+#submissions table tr > *
+{
+    padding: 5px;
 }
 
 .btn_link

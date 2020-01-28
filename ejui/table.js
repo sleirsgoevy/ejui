@@ -1,4 +1,4 @@
-function AnimatedTable(cols)
+function AnimatedTable(cols, style_props)
 {
     this.cols = cols;
     this.colsSet = {};
@@ -7,6 +7,7 @@ function AnimatedTable(cols)
         this.cols[i]._refcount = 0;
         this.colsSet[this.cols[i].id] = true;
     }
+    this.style_props = style_props || [];
     this.theTable = document.createElement('table');
     this.theTH = document.createElement('tr');
     this.theTable.appendChild(this.theTH);
@@ -146,6 +147,9 @@ AnimatedTable.prototype.updateRow = function(r)
             if(data !== null && data !== undefined)
                 td.appendChild(((typeof data) != 'object')?document.createTextNode(data):data);
         }
+    for(var i = 0; i < this.style_props.length; i++)
+        if(r['css_'+this.style_props[i]])
+            r._tr.style[this.style_props[i]] = r['css_'+this.style_props[i]];
 }
 
 AnimatedTable.prototype.removeRow = function(r)
@@ -197,7 +201,10 @@ AnimatedTable.prototype.animate = function()
         var r = this.animated_rows.get_by_index(i).value;
         if(r._opacity !== undefined)
         {
-            r._opacity = (r._toremove?animateRemove:animateInsert)(r._opacity);
+            if(r._animation)
+                r._opacity = r._animation(r._opacity);
+            else
+                r._opacity = (r._toremove?animateRemove:animateInsert)(r._opacity);
             if(r._opacity === undefined)
             {
                 this.animated_rows.del(r._id);
@@ -249,7 +256,7 @@ function animateInsert(opacity)
     if(opacity === 1)
         return undefined;
     opacity = Math.pow(opacity, 1/3);
-    opacity += 1/60;
+    opacity += 1/15;
     opacity = Math.pow(opacity, 3);
     if(opacity > 1)
         opacity = 1;
@@ -261,7 +268,7 @@ function animateRemove(opacity)
     if(opacity === 0)
         return undefined;
     opacity = Math.pow(opacity, 1/3);
-    opacity -= 1/30;
+    opacity -= 1/15;
     opacity = Math.pow(opacity, 3);
     if(opacity < 0)
         opacity = 0;
