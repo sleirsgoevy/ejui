@@ -7,11 +7,13 @@ try:
     from brutejudge.error import BruteError
     from brutejudge.commands.scoreboard import format_single as sb_format_single
     from brutejudge.commands.googlelogin import get_auth_token as goauth_get_auth_token
+    from brutejudge.commands.astatus import still_running
 except ImportError:
     import ejcli.http as bj
     from ejcli.error import EJError as BruteError
     from ejcli.commands.scoreboard import format_single as sb_format_single
     from ejcli.commands.googlelogin import get_auth_token as goauth_get_auth_token
+    from ejcli.commands.astatus import still_running
 
 GOAUTH_CLIENT_ID = '894979903815-c44atlfg22sp08rc1ifnfod0lej4jr0j.apps.googleusercontent.com'
 GOAUTH_CLIENT_SECRET = 'Oe8J0rddJ1r70R5Jj_3_d018'
@@ -341,6 +343,15 @@ def format_page(page, text, tl=None, subms=None, clars=None):
         curr_task = 'null'
     return pkgutil.get_data('ejui', 'skel.html').decode('utf-8').format(task=curr_task, subm_preload=json.dumps(subms), head=head, body=text)
 
+def get_submission_color(status, score):
+    if not status or still_running(status):
+        return '#ffffff'
+    score = score or 0
+    if status == 'OK': score = 100
+    green = (127*score)//100
+    red = 127-green
+    return '#%02x%02x80'%(128+red, 128+green)
+
 def format_submissions(task=None):
     url, cookie = force_session()
     json_data = {}
@@ -370,7 +381,7 @@ def format_submissions(task=None):
             json_data[i] = json_item
             if task in (t, None):
                 any_subms = True
-                ans += tt.format(id=i, task=html.escape(t), status=html.escape(status), score=stats)
+                ans += tt.format(id=i, task=html.escape(t), status=html.escape(status), score=stats, color=get_submission_color(status, stats))
         return (pkgutil.get_data('ejui', 'subms_t.html' if have_score else 'subms_no_score.html').decode('utf-8').format(data=ans), any_subms, json_data)
 
 def format_tests(id):
