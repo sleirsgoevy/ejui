@@ -3,16 +3,21 @@ body
     margin: 0;
 }
 
-.selected, button:active, input[type=submit]:active
+button:active, input[type=submit]:active
 {
-    background: #300;
+    background: #333;
+}
+
+.selected, #header td > .selected
+{
+    background: #333;
 }
 
 #header
 {
     padding: 0;
     margin: 0;
-    background: red;
+    background: #666;
     width: 100%; 
     position: relative;
     z-index: 3;
@@ -31,11 +36,12 @@ body
 {
     margin: 0;
     padding: 10px;
+    background: #666;
 }
 
 button, input[type=submit]
 {
-    background: red;
+    background: #666;
     border: none;
     border-radius: 10px;
 }
@@ -95,7 +101,7 @@ button, input[type=submit]
 {
     display: inline-block;
     background: red;
-    border-radius: 50%;
+    border-radius: 100%;
 }
 
 #cover
@@ -122,7 +128,7 @@ button, input[type=submit]
 
 #scoreboard tr:nth-child(2n+1)
 {
-    background: gray;
+    background: lightgray;
 }
 
 #scoreboard tr > *

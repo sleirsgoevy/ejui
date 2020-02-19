@@ -15,6 +15,7 @@ except ImportError:
     from ejcli.commands.googlelogin import get_auth_token as goauth_get_auth_token
     from ejcli.commands.astatus import still_running
 
+#Note: these are only provided for demonstration/testing/sake-of-completeness purposes. You should supply your own credentials if you want to support goauth.
 GOAUTH_CLIENT_ID = '894979903815-c44atlfg22sp08rc1ifnfod0lej4jr0j.apps.googleusercontent.com'
 GOAUTH_CLIENT_SECRET = 'Oe8J0rddJ1r70R5Jj_3_d018'
 
@@ -135,6 +136,10 @@ def task_page(task):
         td = task_data(task, tl=tl)
         t1 = pkgutil.get_data('ejui', 'task.html').decode('utf-8')
         t2 = pkgutil.get_data('ejui', 'compiler.html').decode('utf-8')
+        askq = pkgutil.get_data('ejui', 'askq.html').decode('utf-8')
+        try: bj.clars(url, cookie)
+        except: askq = ''
+        else: askq.format(id=task)
         subms, any_subms, json_subms = format_submissions(td['name'])
         if any_subms:
             subms = pkgutil.get_data('ejui', 'task_subms.html').decode('utf-8').format(subms=subms)
@@ -145,7 +150,7 @@ def task_page(task):
             compilers += t2.format(id=a, short_name=html.escape(b), long_name=html.escape(c))
         if td['compilers']:
             compilers = pkgutil.get_data('ejui', 'compilers.html').decode('utf-8').format(data=compilers)
-        return format_page('task%d'%task, t1.format(id=task, name=html.escape(td['name']), subms=subms, compilers=compilers), tl=tl, subms=json_subms)
+        return format_page('task%d'%task, t1.format(id=task, name=html.escape(td['name']), subms=subms, compilers=compilers, askq=askq), tl=tl, subms=json_subms)
 
 @application.post('/submit/<task:int>')
 @application.post('/submit/<task:int>/<cmpl:int>')
@@ -314,43 +319,72 @@ def logout():
     except KeyError: pass
     return redirect('/')
 
-def format_page(page, text, tl=None, subms=None, clars=None):
+def format_page(page, text, tl=None, subms=None, clars=None, status=None, scores=None):
     url, cookie = force_session()
     if tl == None: tl = bj.task_list(url, cookie)
-    if clars == None: clars = list(zip(*bj.clars(url, cookie)))
+    if clars == None:
+        try: clars = list(zip(*bj.clars(url, cookie)))
+        except: clars = []
+    if status == None:
+        try: status = bj.status(url, cookie)
+        except: status = {}
+    if scores == None:
+        try: scores = bj.scores(url, cookie)
+        except: scores = {}
     if subms == None: subms = format_submissions(None)[2]
-    data = [('main', '', '/', '<b>ejui</b>')]
+    data = [('main', '', '/', '<b>ejui</b>', '')]
+    dyn_style = ''
     for i, j in enumerate(tl):
-        data.append(('task%d'%i, '', '/task/%d'%i, html.escape(j)))
-    data2 = [('error', '', '', '<div id="error_btn">!</div>'), ('subms', '', '/submissions', 'Submissions'), ('scoreboard', '', '/scoreboard', 'Scoreboard'), ('logout', 'toolbar_icon', '/logout', '<img src="/logout.png" alt="Log out" />')]
-    if clars or page == 'clars': data2.insert(3, ('clars', 'toolbar_icon', '/clars', '<img src="/mail.png" alt="Clarifications" />'))
+        if status.get(j, None) != None or scores.get(j, None) != None:
+            st = status.get(j, True)
+            sc = scores.get(j, 0)
+            c1 = get_submission_color(st, sc, 1)
+            c2 = get_submission_color(st, sc, 2)
+            c = 'data-color1="%s" data-color2="%s"'%(c1, c2)
+            dyn_style += '#toolbar_item_task%d\n{\n    background: %s !important;\n}\n\n'%(i, c2 if page == 'task%d'%i else c1)
+        else:
+            c = ''
+        data.append(('task%d'%i, '', '/task/%d'%i, html.escape(j), c))
+    if dyn_style:
+        dyn_style = '<style id="dyn_style">\n'+dyn_style.strip()+'\n</style>'
+    data2 = [('error', '', '', '<div id="error_btn">!</div>', ''), ('subms', '', '/submissions', 'Submissions', ''), ('scoreboard', '', '/scoreboard', 'Scoreboard', ''), ('logout', 'toolbar_icon', '/logout', '<img src="/logout.png" alt="Log out" />', '')]
+    if clars or page == 'clars': data2.insert(3, ('clars', 'toolbar_icon', '/clars', '<img src="/mail.png" alt="Clarifications" />', ''))
     head = ''
-    for a, b, c, d in data:
+    for a, b, c, d, e in data:
         if a == page:
             b += ' selected'
         head += '<a id="toolbar_item_'+a+'" class="'+b+'" href="'+c+'" onclick="ajax_load(this); return false"'
+        if e:
+            head += ' '+e
         head += '>'+d+'</a>'
     head += '</td><td align=right>'
-    for a, b, c, d in data2:
-        head += '<a id="'+a+'" class="'+b+'" href="'+c+'" onclick="ajax_load(this); return false"'
+    for a, b, c, d, e in data2:
+        head += '<a id="toolbar_item_'+a+'" class="'+b+'" href="'+c+'" onclick="ajax_load(this); return false"'
         if a == page:
             head += ' class=selected'
+        if e:
+            head += ' '+e
         head += '>'+d+'</a>'
     head += ''
     if page.startswith('task'):
         curr_task = repr(tl[int(page[4:])])
     else:
         curr_task = 'null'
-    return pkgutil.get_data('ejui', 'skel.html').decode('utf-8').format(task=curr_task, subm_preload=json.dumps(subms), head=head, body=text)
+    return pkgutil.get_data('ejui', 'skel.html').decode('utf-8').format(task=curr_task, subm_preload=json.dumps(subms), dynamic_styles=dyn_style, head=head, body=text)
 
-def get_submission_color(status, score):
+def get_submission_color(status, score, idx=0):
     if not status or still_running(status):
         return '#ffffff'
     score = score or 0
     if status == 'OK': score = 100
-    green = (127*score)//100
-    red = 127-green
-    return '#%02x%02x80'%(128+red, 128+green)
+    if idx == 0:
+        green = (127*score)//100
+        red = 127-green
+        return '#%02x%02x%02x'%(128+red, 128+green, 128)
+    else:
+        green = (255*score)//100
+        red = 255-green
+        return '#%02x%02x%02x'%(red//idx, green//idx, 0)
 
 def format_submissions(task=None):
     url, cookie = force_session()

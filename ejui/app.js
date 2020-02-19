@@ -44,8 +44,17 @@ function select_item(id)
 {
     var elems = document.getElementsByClassName('selected');
     for(var i = 0; i < elems.length; i++)
+    {
+        var attr = elems[i].getAttribute('data-color1');
+        if(attr !== null)
+            elems[i].style.background = attr;
         elems[i].className = '';
-    document.getElementById('toolbar_item_'+id).className = 'selected';
+    }
+    var elem = document.getElementById('toolbar_item_'+id);
+    var attr = elem.getAttribute('data-color2');
+    if(attr !== null)
+        elem.style.background = attr;
+    elem.className = 'selected';
 }
 
 function Submission(tbl, id, task, status, score)
@@ -501,6 +510,16 @@ function setCover(f)
                 elem.style.display = 'none';
         }, 100);
     }
+}
+
+function domReady()
+{
+    var dyn_style = document.getElementById('dyn_style');
+    if(dyn_style !== null)
+        dyn_style.parentNode.removeChild(dyn_style);
+    var elems = document.querySelectorAll('#header td > a');
+    for(var i = 0; i < elems.length; i++)
+        elems[i].style.background = elems[i].getAttribute(elems[i].className.indexOf('selected')>=0?'data-color2':'data-color1');
 }
 
 checkSubmissions(true);
