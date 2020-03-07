@@ -30,7 +30,21 @@ def get_session():
 @application.route('/')
 def main_page():
     if get_session() == None:
-        login_type = bj.login_type(tgt_addr)
+        url = tgt_addr
+        action = '/'
+        if 'contest' in request.query:
+            try: ctst = int(request.query['contest'])
+            except ValueError:
+                ctst = 0
+                contests = []
+            else: contests = bj.contest_list(tgt_addr, None)
+            if ctst not in range(len(contests)):
+                return pkgutil.get_data('ejui', 'error.html').decode('utf-8').format(message='Invalid contest')
+            url = contests[ctst][0]
+            action = '/?'+urlencode({'contest': str(ctst)})
+        login_type = bj.login_type(url)
+        if 'contest_list' in login_type:
+            return select_contest()
         goauth = [i for i in login_type if i.startswith('goauth:')]
         if goauth:
             assert len(goauth) == 1
@@ -43,8 +57,17 @@ def main_page():
             fields += login_field.format(name='login', label='Login: ', type='text')
         if 'pass' in login_type:
             fields += login_field.format(name='pass', label='Password: ', type='password')
-        return login_page.format(fields=fields)
+        return login_page.format(action=action, fields=fields)
     return format_page('main', pkgutil.get_data('ejui', 'main.html').decode('utf-8'))
+
+def select_contest():
+    contests = bj.contest_list(tgt_addr, None)
+    main_page = pkgutil.get_data('ejui', 'contest_list.html').decode('utf-8')
+    row = pkgutil.get_data('ejui', 'contest_list_row.html').decode('utf-8')
+    rows = ''
+    for i, (_, name, _) in enumerate(contests):
+        rows += row.format(id=i, name=html.escape(name))
+    return main_page.format(rows=rows)
 
 @application.route('/style.css')
 def style_css():
@@ -74,6 +97,16 @@ def logout_png(icon):
 
 @application.post('/')
 def do_login(get_token=None, *args):
+    url = tgt_addr
+    if 'contest' in request.query:
+        try: ctst = int(request.query['contest'])
+        except ValueError:
+            ctst = 0
+            contests = []
+        else: contests = bj.contest_list(tgt_addr, None)
+        if ctst not in range(len(contests)):
+            return pkgutil.get_data('ejui', 'error.html').decode('utf-8').format(message='Invalid contest')
+        url = contests[ctst][0]
     if get_token == None:
         login = request.forms.get('login', default=None)
         if login != None: login = login.encode('latin-1').decode('utf-8', 'replace')
@@ -81,7 +114,7 @@ def do_login(get_token=None, *args):
         if pass_ != None: pass_ = pass_.encode('latin-1').decode('utf-8', 'replace')
     else: login = pass_ = None
     message = None
-    try: url, cookie = bj.login(tgt_addr, login, pass_, **({'token': get_token(*args)} if get_token != None else {}))
+    try: url, cookie = bj.login(url, login, pass_, **({'token': get_token(*args)} if get_token != None else {}))
     except (BruteError, socket.error) as e:
         message = str(e)
     except Exception:

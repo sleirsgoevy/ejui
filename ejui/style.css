@@ -121,17 +121,27 @@ button, input[type=submit]
     border-bottom: 1px solid black;
 }
 
-#scoreboard tr:nth-child(2n)
+#contest_list tr > *
+{
+    border-top: 1px solid black;
+}
+
+#contest_list tr:nth-child(1) > *
+{
+    border-top: none !important;
+}
+
+#scoreboard tr:nth-child(2n), #contest_list tr:nth-child(2n)
 {
     background: darkgray;
 }
 
-#scoreboard tr:nth-child(2n+1)
+#scoreboard tr:nth-child(2n+1), #contest_list tr:nth-child(2n+1)
 {
     background: lightgray;
 }
 
-#scoreboard tr > *
+#scoreboard tr > *, #contest_list tr > *
 {
     padding: 5px;
 }
@@ -144,6 +154,17 @@ button, input[type=submit]
 #submissions table tr > *
 {
     padding: 5px;
+}
+
+#contest_list a
+{
+    color: inherit;
+    text-decoration: none;
+}
+
+#contest_list tr:hover
+{
+    background: #ddf;
 }
 
 .btn_link
