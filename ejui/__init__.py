@@ -271,17 +271,24 @@ def scoreboard():
 @application.route('/api/submission_list')
 def submission_list():
     url, cookie = force_session()
-    return {"list": bj.submission_list(url, cookie)}
+    with bj.may_cache(url, cookie):
+        return {"list": bj.submission_list(url, cookie),
+		"status": bj.status(url, cookie),
+                "scores": bj.scores(url, cookie)}
 
 @application.route('/api/submission_list/<id:int>')
 def submission_list_item(id):
     id = int(id)
     url, cookie = force_session()
-    score = bj.submission_score(url, cookie, id)
-    status = bj.submission_status(url, cookie, id)
+    with bj.may_cache(url, cookie):
+        score = bj.submission_score(url, cookie, id)
+        status = bj.submission_status(url, cookie, id)
+        gsc = bj.scores(url, cookie)
+        gst = bj.status(url, cookie)
     data = {'status': status}
     if score != None:
         data['score'] = score
+    data['global'] = {'status': gst, 'scores': gsc}
     return data
 
 @application.route('/api/stats/<id:int>')
@@ -369,14 +376,14 @@ def format_page(page, text, tl=None, subms=None, clars=None, status=None, scores
     dyn_style = ''
     for i, j in enumerate(tl):
         if status.get(j, None) != None or scores.get(j, None) != None:
-            st = status.get(j, True)
+            st = status.get(j, 'True')
             sc = scores.get(j, 0)
             c1 = get_submission_color(st, sc, 1)
             c2 = get_submission_color(st, sc, 2)
-            c = 'data-color1="%s" data-color2="%s"'%(c1, c2)
+            c = 'data-color1="%s" data-color2="%s" data-taskid="%s"'%(c1, c2, html.escape(j))
             dyn_style += '#toolbar_item_task%d\n{\n    background: %s !important;\n}\n\n'%(i, c2 if page == 'task%d'%i else c1)
         else:
-            c = ''
+            c = 'data-taskid="%s"'%html.escape(j)
         data.append(('task%d'%i, '', '/task/%d'%i, html.escape(j), c))
     if dyn_style:
         dyn_style = '<style id="dyn_style">\n'+dyn_style.strip()+'\n</style>'

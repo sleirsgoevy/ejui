@@ -90,6 +90,31 @@ Submission.prototype.update = function(status, score)
         this.tbl.tbl.updateRow(this);
 }
 
+function score2color(status, score, idx)
+{
+    if(Submission.prototype.still_running(status))
+        return '#ffffff';
+    score = score || 0;
+    if(status == 'OK')
+        score = 100;
+    var hex = "0123456789abcdef";
+    if(!idx)
+    {
+        var green = Math.floor(128+(127*score)/100);
+        var red = 383-green;
+        var blue = '80';
+    }
+    else
+    {
+        var green = Math.floor((255*score)/100);
+        var red = 255-green;
+        green = Math.floor(green/idx);
+        red = Math.floor(red/idx);
+        var blue = '00';
+    }
+    return '#'+hex[(red-red%16)/16]+hex[red%16]+hex[(green-green%16)/16]+hex[green%16]+blue;
+}
+
 Submission.prototype.updateBackgroundColor = function()
 {
     if(this.still_running())
@@ -100,13 +125,7 @@ Submission.prototype.updateBackgroundColor = function()
     else
     {
         this._animation = null;
-        var score = this.score || 0;
-        if(this.status == 'OK')
-            score = 100;
-        var green = Math.floor(127*(score/100));
-        var red = 127-green;
-        var hex = "0123456789abcdef";
-        this.css_backgroundColor = '#'+hex[8+(red-red%16)/16]+hex[red%16]+hex[8+(green-green%16)/16]+hex[green%16]+'80';
+        this.css_backgroundColor = score2color(this.status, this.score);
     }
 }
 
@@ -154,6 +173,8 @@ Submission.prototype.poll = function()
         self.update(data.status, data.score);
         self.polling = false;
         self.maybe_poll();
+        if(!self.still_running())
+            updateTaskColors(data.global.status, data.global.scores);
     }
     xhr.onerror = function()
     {
@@ -230,6 +251,30 @@ var subms = [];
 var submsLoaded = false;
 var subm_table = null;
 
+function updateTaskColors(status, scores)
+{
+    for(var i = 0;; i++)
+    {
+        var elem = document.getElementById('toolbar_item_task'+i);
+        if(elem == null)
+            break;
+        var taskid = elem.getAttribute('data-taskid');
+        var st = status[taskid];
+        var sc = scores[taskid];
+        if(st !== undefined && st !== null || sc != undefined && sc != null)
+        {
+            domReady();
+            st = st || 'true';
+            sc = sc || 0;
+            var c1 = score2color(st, sc, 1);
+            var c2 = score2color(st, sc, 2);
+            elem.setAttribute('data-color1', c1);
+            elem.setAttribute('data-color2', c2);
+            elem.style.background = (elem.className.indexOf('selected')>=0?c2:c1);
+        }
+    }
+}
+
 function checkSubmissions(j4f)
 {
     if(checkSubmissions.timer !== undefined)
@@ -241,13 +286,17 @@ function checkSubmissions(j4f)
     {
         try
         {
-            var data = JSON.parse(this.responseText).list;
+            var jj = JSON.parse(this.responseText);
+            var data = jj.list;
+            var status = jj.status;
+            var scores = jj.scores;
         }
         catch(e)
         {
             checkSubmissions(j4f);
             return;
         }
+        updateTaskColors(status, scores);
         subms = data;
         if(!submsLoaded)
             initSubmissionTable();
@@ -520,6 +569,7 @@ function domReady()
     var elems = document.querySelectorAll('#header td > a');
     for(var i = 0; i < elems.length; i++)
         elems[i].style.background = elems[i].getAttribute(elems[i].className.indexOf('selected')>=0?'data-color2':'data-color1');
+    domReady = function(){}
 }
 
 checkSubmissions(true);
