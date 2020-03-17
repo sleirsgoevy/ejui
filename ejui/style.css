@@ -189,3 +189,9 @@ button, input[type=submit]
 {
     width: auto !important;
 }
+
+.source_code
+{
+    display: block;
+    background: #eee;
+}

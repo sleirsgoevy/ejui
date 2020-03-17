@@ -66,9 +66,14 @@ function Submission(tbl, id, task, status, score)
     this.status = status;
     this.score = score;
     this.updateBackgroundColor();
+    this.source_link = document.createElement('a');
+    this.source_link.href = '/source/'+id;
+    this.source_link.appendChild(document.createTextNode('View'));
+    this.source_link.onclick = ajax_load.bind(window, this.source_link);
     this.protocol_link = document.createElement('a');
     this.protocol_link.href = '/submissions/'+id;
-    this.protocol_link.appendChild(document.createTextNode('Show protocol'));
+    this.protocol_link.appendChild(document.createTextNode('View'));
+    this.protocol_link.onclick = ajax_load.bind(window, this.protocol_link);
     this.css_transition = 'background-color 0.25s ease-out';
     this.css_backgroundColor = '#ffffff';
     this.tbl.submById.set(id, this);
@@ -187,7 +192,7 @@ Submission.prototype.poll = function()
 function SubmissionTable(task_id, hlevel)
 {
     this.task_id = task_id;
-    this.tbl = new AnimatedTable([{id: 's_id', name: 'ID'}, {id: 'task', name: 'Task'}, {id: 'status', name: 'Status'}, {id: 'score', name: 'Score'}, {id: 'protocol_link', name: 'Protocol'}], ['backgroundColor']);
+    this.tbl = new AnimatedTable([{id: 's_id', name: 'ID'}, {id: 'task', name: 'Task'}, {id: 'status', name: 'Status'}, {id: 'score', name: 'Score'}, {id: 'source_link', name: 'Source'}, {id: 'protocol_link', name: 'Protocol'}], ['backgroundColor']);
     this.tbl.theTable.setAttribute('cellspacing', '0');
     this.tbl.theTable.border = 1;
     this.theTable = document.createElement('span');
@@ -502,6 +507,48 @@ function doAjaxLoad(page)
             document.getElementById('body').innerHTML = this.responseText;
         }
     }
+    else if(page.substr(0, 8) == '/source/')
+    {
+        select_item('subms');
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', '/api'+page, true);
+        xhr.send('');
+        xhr.onload = function()
+        {
+            setCover(false);
+            if(xhr.status != 200)
+            {
+                alert('Source code is not available for this submission.');
+            }
+            else
+            {
+                var body = document.getElementById('body');
+                body.innerHTML = '';
+                var h1 = document.createElement('h1');
+                var text = 'Submission #'+page.substr(8);
+                if(subms.length >= 2)
+                    for(var i = 0; i < subms[1].length; i++)
+                        if(+subms[0][i] === +page.substr(8))
+                        {
+                            text += ' (task '+subms[1][i]+')';
+                            break;
+                        }
+                h1.appendChild(document.createTextNode(text));
+                var a = document.createElement('a');
+                a.setAttribute('href', '/api'+page);
+                a.setAttribute('download', 'source.txt');
+                var img = document.createElement('img');
+                img.src = '/download.png';
+                a.appendChild(img);
+                h1.appendChild(a);
+                body.appendChild(h1);
+                var pre = document.createElement('pre');
+                pre.className = 'source_code';
+                pre.appendChild(document.createTextNode(xhr.responseText));
+                body.appendChild(pre);
+            }
+        }
+    }
     else if(page.substr(0, 11) == '/scoreboard')
     {
         select_item('scoreboard');
@@ -517,16 +564,20 @@ function doAjaxLoad(page)
         }
     }
     else
+    {
+        setCover(false);
         document.location.replace(page);
+    }
 }
 
 function ajax_load(link)
 {
     var path = link.getAttribute('href');
     if(path == '')
-        return;
+        return false;
     history.pushState({"page": path}, "", path);
     doAjaxLoad(path);
+    return false;
 }
 
 window.onpopstate = function(e)

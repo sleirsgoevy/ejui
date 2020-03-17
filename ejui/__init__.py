@@ -75,12 +75,12 @@ def style_css():
     return pkgutil.get_data('ejui', 'style.css')
 
 @application.route('/avltree.js')
-def app_js():
+def avltree_js():
     response.set_header('Content-Type', 'application/javascript; charset=utf-8')
     return pkgutil.get_data('ejui', 'avltree.js')
 
 @application.route('/table.js')
-def app_js():
+def table_js():
     response.set_header('Content-Type', 'application/javascript; charset=utf-8')
     return pkgutil.get_data('ejui', 'table.js')
 
@@ -90,7 +90,7 @@ def app_js():
     return pkgutil.get_data('ejui', 'app.js')
 
 @application.route('/<icon>.png')
-def logout_png(icon):
+def icon_png(icon):
     response.set_header('Content-Type', 'image/png')
     try: return pkgutil.get_data('ejui', icon+'.png')
     except OSError: error(404)
@@ -239,7 +239,31 @@ def format_protocol(id):
 
 @application.route('/submissions/<id:int>')
 def protocol(id):
-    return format_page('protocol', format_protocol(id))
+    return format_page('subms', format_protocol(id))
+
+@application.route('/api/source/<id:int>')
+def get_source(id):
+    id = int(id)
+    url, cookie = force_session()
+    src = bj.submission_source(url, cookie, id)
+    if src == None: abort(404)
+    response.set_header('Content-Type', 'text/plain; charset=utf-8')
+    return src
+
+@application.route('/source/<id:int>')
+def format_source(id):
+    id = int(id)
+    url, cookie = force_session()
+    with bj.may_cache(url, cookie):
+        src = bj.submission_source(url, cookie, id).decode('utf-8', 'replace')
+        subms = list(zip(*bj.submission_list(url, cookie)))
+        try: task = [j for i, j in subms if int(i) == id][0]
+        except IndexError: task = None
+        if src == None:
+            ans = pkgutil.get_data('ejui', 'no_source.html').decode('utf-8')
+        else:
+            ans = pkgutil.get_data('ejui', 'source.html').decode('utf-8').format(subm_id=id, task=(' (task %s)'%html.escape(task) if task != None else ''), code=html.escape(src))
+        return format_page('subms', ans)
 
 @application.route('/api/scoreboard')
 def format_scoreboard(aug=lambda y, x: x):

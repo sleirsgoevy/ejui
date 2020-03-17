@@ -3,5 +3,6 @@
 <td>{task}</td>
 <td>{status}</td>
 <td>{score}</td>
-<td><a href="/submissions/{id}">Show protocol</a></td>
+<td><a href="/source/{id}" onclick="ajax_load(this); return false">View</a></td>
+<td><a href="/submissions/{id}" onclick="ajax_load(this); return false">View</a></td>
 </tr>
