@@ -16,8 +16,8 @@ except ImportError:
     from ejcli.commands.astatus import still_running
 
 #Note: these are only provided for demonstration/testing/sake-of-completeness purposes. You should supply your own credentials if you want to support goauth.
-GOAUTH_CLIENT_ID = '894979903815-c44atlfg22sp08rc1ifnfod0lej4jr0j.apps.googleusercontent.com'
-GOAUTH_CLIENT_SECRET = 'Oe8J0rddJ1r70R5Jj_3_d018'
+GOAUTH_CLIENT_ID = '158805258134-fk2gef9qi727b7rncel01p582md374a0.apps.googleusercontent.com'
+GOAUTH_CLIENT_SECRET = 'scWWMjrZmnQxA6BPz_4dYgxa'
 
 application = bottle.Bottle()
 
