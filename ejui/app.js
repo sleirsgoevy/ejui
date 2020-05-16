@@ -674,6 +674,8 @@ function startTimer()
     if(!elem)
         return;
     var timer_data = eval('('+elem.getAttribute('data-timer')+')');
+    if(!timer_data)
+        return;
     timerInterval = setInterval(function()
     {
         timer_data[0] += 1;

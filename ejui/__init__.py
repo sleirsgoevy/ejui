@@ -38,10 +38,14 @@ def format_time(t):
         return '%d:%02d:%02d'%(h, m, s)
     return '%d:%02d:%02d:%02d'%(d, h, m, s)
 
+def get_contest_info(url, cookie):
+    try: return bj.contest_info(url, cookie)
+    except: return ('', {}, {})
+
 @application.route('/api/main')
 def api_main(meta8=None):
     url, cookie = force_session()
-    text, table, meta = bj.contest_info(url, cookie)
+    text, table, meta = get_contest_info(url, cookie)
     if text:
         text = pkgutil.get_data('ejui', 'spoiler.html').decode('utf-8').format(id='contest_info', title='Contest information', contents=html.escape(text))
     if table:
@@ -436,7 +440,7 @@ def format_page(page, text, tl=None, subms=None, clars=None, status=None, scores
             except: scores = {}
         if subms == None: subms = format_submissions(None)[2]
         if jjs_devmode == None:
-            jjs_devmode = bj.contest_info(url, cookie)[2].get('jjs_devmode', False)
+            jjs_devmode = get_contest_info(url, cookie)[2].get('jjs_devmode', False)
     data = [('main', '', '/', '<b>ejui</b>', '')]
     dyn_style = ''
     for i, j in enumerate(tl):
