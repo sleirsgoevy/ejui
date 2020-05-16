@@ -27,6 +27,36 @@ def get_session():
     sess_id = request.get_cookie('credentials', 'invalid')
     return sessions.get(sess_id, None)
 
+def format_time(t):
+    if t * 0: return 'Unlimited'
+    t, s = divmod(t, 60)
+    t, m = divmod(t, 60)
+    d, h = divmod(t, 24)
+    if d == 0:
+        if h == 0:
+            return '%d:%02d'%(m, s)
+        return '%d:%02d:%02d'%(h, m, s)
+    return '%d:%02d:%02d:%02d'%(d, h, m, s)
+
+@application.route('/api/main')
+def api_main(meta8=None):
+    url, cookie = force_session()
+    text, table, meta = bj.contest_info(url, cookie)
+    if text:
+        text = pkgutil.get_data('ejui', 'spoiler.html').decode('utf-8').format(id='contest_info', title='Contest information', contents=html.escape(text))
+    if table:
+        table = ''.join(pkgutil.get_data('ejui', 'info_row.html').decode('utf-8').format(key=html.escape(k), value=html.escape(v)) for k, v in table.items())
+        table = pkgutil.get_data('ejui', 'info_table.html').decode('utf-8').format(info=table)
+    else:
+        table = ''
+    timer = None
+    time_s = ''
+    if 'contest_time' in meta and 'contest_duration' in meta:
+        timer = (meta['contest_time'], meta['contest_duration'])
+        time_s = '%s of %s'%tuple(map(format_time, timer))
+    if meta8 != None: meta8.update(meta)
+    return {'html': pkgutil.get_data('ejui', 'main.html').decode('utf-8').format(cur_time=time_s, contest_info=table, text_spoiler=text, timer=json.dumps(timer)), 'timer': timer}
+
 @application.route('/')
 def main_page():
     if get_session() == None:
@@ -58,7 +88,10 @@ def main_page():
         if 'pass' in login_type:
             fields += login_field.format(name='pass', label='Password: ', type='password')
         return login_page.format(action=action, fields=fields)
-    return format_page('main', pkgutil.get_data('ejui', 'main.html').decode('utf-8'))
+    meta = {}
+    ans = api_main(meta)['html']
+    jjs_devmode = meta.get('jjs_devmode', False)
+    return format_page('main', ans, jjs_devmode=jjs_devmode)
 
 def select_contest():
     contests = bj.contest_list(tgt_addr, None)
@@ -94,6 +127,11 @@ def icon_png(icon):
     response.set_header('Content-Type', 'image/png')
     try: return pkgutil.get_data('ejui', icon+'.png')
     except OSError: error(404)
+
+@application.route('/jjs_devmode.svg')
+def jjs_devmode_svg():
+    response.set_header('Content-Type', 'image/svg+xml; charset=utf-8')
+    return pkgutil.get_data('ejui', 'jjs_devmode.svg')
 
 @application.post('/')
 def do_login(get_token=None, *args):
@@ -383,19 +421,22 @@ def logout():
     except KeyError: pass
     return redirect('/')
 
-def format_page(page, text, tl=None, subms=None, clars=None, status=None, scores=None):
+def format_page(page, text, tl=None, subms=None, clars=None, status=None, scores=None, jjs_devmode=None):
     url, cookie = force_session()
-    if tl == None: tl = bj.task_list(url, cookie)
-    if clars == None:
-        try: clars = list(zip(*bj.clars(url, cookie)))
-        except: clars = []
-    if status == None:
-        try: status = bj.status(url, cookie)
-        except: status = {}
-    if scores == None:
-        try: scores = bj.scores(url, cookie)
-        except: scores = {}
-    if subms == None: subms = format_submissions(None)[2]
+    with bj.may_cache(url, cookie):
+        if tl == None: tl = bj.task_list(url, cookie)
+        if clars == None:
+            try: clars = list(zip(*bj.clars(url, cookie)))
+            except: clars = []
+        if status == None:
+            try: status = bj.status(url, cookie)
+            except: status = {}
+        if scores == None:
+            try: scores = bj.scores(url, cookie)
+            except: scores = {}
+        if subms == None: subms = format_submissions(None)[2]
+        if jjs_devmode == None:
+            jjs_devmode = bj.contest_info(url, cookie)[2].get('jjs_devmode', False)
     data = [('main', '', '/', '<b>ejui</b>', '')]
     dyn_style = ''
     for i, j in enumerate(tl):
@@ -434,7 +475,7 @@ def format_page(page, text, tl=None, subms=None, clars=None, status=None, scores
         curr_task = repr(tl[int(page[4:])])
     else:
         curr_task = 'null'
-    return pkgutil.get_data('ejui', 'skel.html').decode('utf-8').format(task=curr_task, subm_preload=json.dumps(subms), dynamic_styles=dyn_style, head=head, body=text)
+    return pkgutil.get_data('ejui', 'skel.html').decode('utf-8').format(body_style=(' style="background: url(/jjs_devmode.svg)"' if jjs_devmode else ''), task=curr_task, subm_preload=json.dumps(subms), dynamic_styles=dyn_style, head=head, body=text)
 
 def get_submission_color(status, score, idx=0):
     if not status or still_running(status):

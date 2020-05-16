@@ -194,7 +194,8 @@ function SubmissionTable(task_id, hlevel)
     this.task_id = task_id;
     this.tbl = new AnimatedTable([{id: 's_id', name: 'ID'}, {id: 'task', name: 'Task'}, {id: 'status', name: 'Status'}, {id: 'score', name: 'Score'}, {id: 'source_link', name: 'Source'}, {id: 'protocol_link', name: 'Protocol'}], ['backgroundColor']);
     this.tbl.theTable.setAttribute('cellspacing', '0');
-    this.tbl.theTable.border = 1;
+    //this.tbl.theTable.border = 1;
+    this.tbl.theTable.className = 'mtable';
     this.theTable = document.createElement('span');
     this.theTable.appendChild(document.createElement('h'+(task_id===undefined?'1':'2')));
     this.theTable.childNodes[0].appendChild(document.createTextNode('Submissions'));
@@ -384,6 +385,7 @@ function doAjaxLoad(page)
         document.location.replace(page);
         return;
     }
+    stopTimer();
 //  document.getElementById('body').innerHTML = '';
     if(subm_table !== null)
         subm_table = null;
@@ -392,8 +394,17 @@ function doAjaxLoad(page)
     if(page == '/')
     {
         select_item('main');
-        document.getElementById('body').innerHTML = '<h1>This is EJUI!</h1>';
-        setCover(false);
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', '/api/main', true);
+        xhr.send('');
+        xhr.onload = function()
+        {
+            setCover(false);
+            var body = document.getElementById('body');
+            var data = eval('('+xhr.responseText+')'); // we do trust our own server, don't we?
+            body.innerHTML = data.html;
+            startTimer();
+        }
     }
     else if(page.substr(0, 6) == '/task/')
     {
@@ -624,3 +635,54 @@ function domReady()
 }
 
 checkSubmissions(true);
+
+var timerInterval = null;
+
+function stopTimer()
+{
+    if(timerInterval != null)
+    {
+        clearInterval(timerInterval);
+        timerInterval = null;
+    }
+}
+
+function format_time(t)
+{
+    if(t == Infinity)
+        return 'Unlimited';
+    var s = t % 60;
+    t = (t - s) / 60;
+    var m = t % 60;
+    t = (t - m) / 60;
+    var h = t % 24;
+    var d = (t - h) / 24;
+    if(d == 0)
+        if(h == 0)
+            return m+':'+((s-s%10)/10)+s%10;
+        else
+            return h+':'+((m-m%10)/10)+m%10+':'+((s-s%10)/10)+s%10;
+    else
+        return d+':'+((h-h%10)/10)+h%10+':'+((m-m%10)/10)+m%10+':'+((s-s%10)/10)+s%10;
+}
+
+function startTimer()
+{
+    if(timerInterval != null)
+        return;
+    var elem = document.getElementById('main_timer');
+    if(!elem)
+        return;
+    var timer_data = eval('('+elem.getAttribute('data-timer')+')');
+    timerInterval = setInterval(function()
+    {
+        timer_data[0] += 1;
+        if(timer_data[0] > timer_data[1])
+            stopTimer();
+        while(elem.firstChild)
+            elem.removeChild(elem.firstChild);
+        elem.appendChild(document.createTextNode(format_time(timer_data[0])+' of '+format_time(timer_data[1])));
+    }, 1000);
+}
+
+setTimeout(startTimer, 0);

@@ -146,12 +146,12 @@ button, input[type=submit]
     padding: 5px;
 }
 
-#submissions table, #submissions table tr > *
+table.mtable, table.mtable tr > *
 {
     border: 1px solid #888;
 }
 
-#submissions table tr > *
+table.mtable tr > *
 {
     padding: 5px;
 }
@@ -194,4 +194,35 @@ button, input[type=submit]
 {
     display: block;
     background: #eee;
+}
+
+.spoiler
+{
+    display: none;
+}
+
+.spoiler + label
+{
+    color: blue;
+    text-decoration: underline;
+}
+
+.spoiler + label:before
+{
+    content: "+ ";
+}
+
+.spoiler:checked + label:before
+{
+    content: "- ";
+}
+
+.spoiler + label + div
+{
+    display: none;
+}
+
+.spoiler:checked + label + div
+{
+    display: block;
 }
