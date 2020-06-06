@@ -140,8 +140,9 @@ def jjs_devmode_svg():
 @application.post('/')
 def do_login(get_token=None, *args):
     url = tgt_addr
-    if 'contest' in request.query:
-        try: ctst = int(request.query['contest'])
+    ctst = request.query.get('contest', None)
+    if ctst != None:
+        try: ctst = int(ctst)
         except ValueError:
             ctst = 0
             contests = []
@@ -170,13 +171,13 @@ def do_login(get_token=None, *args):
     return redirect('/')
 
 def goauth_get_redirect_uri():
-    return request.urlparts[0]+'://'+request.urlparts[1]+'/goauth'
+    query = ('?'+urlencode({'contest': request.query['contest']})) if 'contest' in request.query else ''
+    return request.urlparts[0]+'://'+request.urlparts[1]+'/goauth'+query
 
 @application.get('/goauth')
 def goauth_redirect():
     login_code = request.query.get('code')
     redirect_uri = goauth_get_redirect_uri()
-    print(login_code, redirect_uri)
     return do_login(goauth_get_auth_token, login_code, redirect_uri, GOAUTH_CLIENT_ID, GOAUTH_CLIENT_SECRET)
 
 def force_session():
