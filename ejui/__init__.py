@@ -74,7 +74,7 @@ def main_page():
             else: contests = bj.contest_list(tgt_addr, None)
             if ctst not in range(len(contests)):
                 return pkgutil.get_data('ejui', 'error.html').decode('utf-8').format(message='Invalid contest')
-            url = contests[ctst][0]
+            url = contests[ctst][1]
             action = '/?'+urlencode({'contest': str(ctst)})
         login_type = bj.login_type(url)
         if 'contest_list' in login_type:
@@ -102,7 +102,7 @@ def select_contest():
     main_page = pkgutil.get_data('ejui', 'contest_list.html').decode('utf-8')
     row = pkgutil.get_data('ejui', 'contest_list_row.html').decode('utf-8')
     rows = ''
-    for i, (_, name, _) in enumerate(contests):
+    for i, (name, _, _) in enumerate(contests):
         rows += row.format(id=i, name=html.escape(name))
     return main_page.format(rows=rows)
 
@@ -149,7 +149,7 @@ def do_login(get_token=None, *args):
         else: contests = bj.contest_list(tgt_addr, None)
         if ctst not in range(len(contests)):
             return pkgutil.get_data('ejui', 'error.html').decode('utf-8').format(message='Invalid contest')
-        url = contests[ctst][0]
+        url = contests[ctst][1]
     if get_token == None:
         login = request.forms.get('login', default=None)
         if login != None: login = login.encode('latin-1').decode('utf-8', 'replace')
