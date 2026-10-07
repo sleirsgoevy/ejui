@@ -189,7 +189,7 @@ Submission.prototype.poll = function()
     }
 }
 
-function SubmissionTable(task_id, hlevel)
+function SubmissionTable(task_id)
 {
     this.task_id = task_id;
     this.tbl = new AnimatedTable([{id: 's_id', name: 'ID'}, {id: 'task', name: 'Task'}, {id: 'status', name: 'Status'}, {id: 'score', name: 'Score'}, {id: 'source_link', name: 'Source'}, {id: 'protocol_link', name: 'Protocol'}], ['backgroundColor']);
@@ -201,7 +201,7 @@ function SubmissionTable(task_id, hlevel)
     this.theTable.childNodes[0].appendChild(document.createTextNode('Submissions'));
     this.theTable.appendChild(this.tbl.theTable);
     this.theSpan = document.createElement('p');
-    this.theSpan.appendChild(document.createTextNode('You have no submissions.'));
+    this.theSpan.appendChild(document.createTextNode(task_id===undefined?'You have no submissions.':'You have no submissions for this problem.'));
     this.submById = new AVLMap();
     this.refresh(subms);
     this.tbl.stopAnimation();
@@ -481,10 +481,15 @@ function doAjaxLoad(page)
             var isubmit = document.createElement('input');
             isubmit.type = 'submit';
             isubmit.value = 'Submit a solution';
-            var lask = document.createElement('a');
-            lask.href = '/clars/submit/'+page.substr(6);
-            lask.appendChild(document.createTextNode('Ask a question'));
-            formTR(null, isubmit, lask);
+            if(data.has_clars)
+            {
+                var lask = document.createElement('a');
+                lask.href = '/clars/submit/'+page.substr(6);
+                lask.appendChild(document.createTextNode('Ask a question'));
+                formTR(null, isubmit, lask);
+            }
+            else
+                formTR(null, isubmit, null);
             form.appendChild(formtab);
             body.appendChild(form);
             var span = document.createElement('span');
@@ -544,6 +549,7 @@ function doAjaxLoad(page)
                             text += ' (task '+subms[1][i]+')';
                             break;
                         }
+                text += ' ';
                 h1.appendChild(document.createTextNode(text));
                 var a = document.createElement('a');
                 a.setAttribute('href', '/api'+page);

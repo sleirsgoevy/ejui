@@ -161,7 +161,6 @@ def do_login(get_token=None, *args):
     except (BruteError, socket.error) as e:
         message = str(e)
     except Exception:
-        raise
         message = "Internal server error"
     if message != None:
         return pkgutil.get_data('ejui', 'error.html').decode('utf-8').format(message=html.escape(message))
@@ -201,7 +200,7 @@ def task_data(task, tl=None):
         else:
             try: compilers = bj.compiler_list(url, cookie, tid)
             except BruteError: compilers = []
-        return {'name': name, 'compilers': compilers}
+        return {'name': name, 'compilers': compilers, 'has_clars': bj.has_feature(url, cookie, 'submit_clar')}
 
 @application.route('/task/<task:int>')
 def task_page(task):
@@ -220,13 +219,13 @@ def task_page(task):
         if any_subms:
             subms = pkgutil.get_data('ejui', 'task_subms.html').decode('utf-8').format(subms=subms)
         else:
-            subms = ''
+            subms = pkgutil.get_data('ejui', 'no_subms_problem.html').decode('utf-8')
         compilers = ''
         for a, b, c in td['compilers']:
             compilers += t2.format(id=a, short_name=html.escape(b), long_name=html.escape(c))
         if td['compilers']:
             compilers = pkgutil.get_data('ejui', 'compilers.html').decode('utf-8').format(data=compilers)
-        return format_page('task%d'%task, t1.format(id=task, name=html.escape(td['name']), subms=subms, compilers=compilers, askq=askq), tl=tl, subms=json_subms)
+        return format_page('task%d'%task, t1.format(id=task, name=html.escape(td['name']), subms=subms, compilers=compilers, askq=askq if bj.has_feature(url, cookie, 'submit_clar') else ''), tl=tl, subms=json_subms)
 
 @application.post('/submit/<task:int>')
 @application.post('/submit/<task:int>/<cmpl:int>')
@@ -312,11 +311,16 @@ def format_source(id):
 def format_scoreboard(aug=lambda y, x: x):
     url, cookie = force_session()
     with bj.may_cache(url, cookie):
-        try: data = bj.scoreboard(url, cookie)
+        try:
+            if bj.has_feature(url, cookie, 'scoreboard'):
+                data = bj.scoreboard(url, cookie)
+            else:
+                data = []
         except BruteError as e:
             bottle.response.status = 500
             return aug(True, '<pre>'+html.escape(str(e))+'</pre>')
         except:
+            raise
             bottle.response.status = 500
             return aug(True, '<pre>Internal server error</pre>')
         tasks = bj.task_list(url, cookie)
@@ -457,7 +461,10 @@ def format_page(page, text, tl=None, subms=None, clars=None, status=None, scores
         data.append(('task%d'%i, '', '/task/%d'%i, html.escape(j), c))
     if dyn_style:
         dyn_style = '<style id="dyn_style">\n'+dyn_style.strip()+'\n</style>'
-    data2 = [('error', '', '', '<div id="error_btn">!</div>', ''), ('subms', '', '/submissions', 'Submissions', ''), ('scoreboard', '', '/scoreboard', 'Scoreboard', ''), ('logout', 'toolbar_icon', '/logout', '<img src="/logout.png" alt="Log out" />', '')]
+    data2 = [('error', '', '', '<div id="error_btn">!</div>', ''), ('subms', '', '/submissions', 'Submissions', '')]
+    if bj.has_feature(url, cookie, 'scoreboard'):
+        data2.append(('scoreboard', '', '/scoreboard', 'Scoreboard', ''))
+    data2.append(('logout', 'toolbar_icon', '/logout', '<img src="/logout.png" alt="Log out" />', ''))
     if clars or page == 'clars': data2.insert(3, ('clars', 'toolbar_icon', '/clars', '<img src="/mail.png" alt="Clarifications" />', ''))
     head = ''
     for a, b, c, d, e in data:
