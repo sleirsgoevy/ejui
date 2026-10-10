@@ -193,6 +193,8 @@ table.mtable tr > *
 .source_code
 {
     display: block;
+    max-width: 100%;
+    overflow: scroll;
     background: #eee;
 }
 
